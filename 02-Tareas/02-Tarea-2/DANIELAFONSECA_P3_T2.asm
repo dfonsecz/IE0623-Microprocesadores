@@ -104,3 +104,38 @@ Fin-BIN-BCD     Ldaa BCD_H
 BCD-BIN         Staa BCD_H
                 Stab BCD_L
                 Clr Num_BIN
+                Clra
+                Ldab BCD_L
+                Andb #$0F               ; Evaluar los 4 lsb de la parte baja
+                Std Num_BIN             ; Guardar el resultado de unidades
+                Ldab BCD_L
+                Andb #$F0               ; Evaluar los 4 msb de la parte baja
+                Ldaa #4
+ShiftR-C-4b     Lsrb
+                Suba #1
+                Cmpa #0
+                Bne ShiftR-C-4b
+                Ldy #10
+                Emul
+                Addd Num_BIN
+                Std Num_BIN             ; Guardar el resultado de decenas
+                Clra
+                Ldab BCD_H
+                Andb #$0F               ; Evaluar los 4 lsb de la parte alta
+                Ldy #100
+                Emul
+                Addd Num_BIN
+                Std Num_BIN             ; Guardar el resultado de centenas
+                Stab BCD_H
+                Andb #$F0               ; Evaluar los 4 msb de la parte alta
+                Ldaa #4
+ShiftR-M-4b     Lsrb
+                Suba
+                Cmpa #0
+                Bne ShiftR-M-4b
+                Ldy #1000
+                Emul
+                Addd Num_BIN
+                Std Num_BIN             ; Guardar el resultado de millares
+                Rts
+                
