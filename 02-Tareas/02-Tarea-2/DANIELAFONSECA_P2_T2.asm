@@ -22,7 +22,7 @@
 ;*******************************************************************************
 
         ORG $1000
-Puntero:   EQU $1250
+Puntero:   ds 2
 
         ORG $1050
 Datos:     db $E5, $D8, $A0, $47, $80
@@ -38,25 +38,28 @@ Mascaras:  db $FF, $AA, $55, $0F, $15, $FE
                 ORG $2000
                 Ldx #Datos
                 Ldy #Mascaras
+                Movw #$1250,Puntero
 Ult_Mascara     Ldaa 1,X+               ; Encontrar ultima mascara
                 Cmpa #$80
                 Bne Ult_Mascara
 Ciclo           Ldab 1,Y+
                 Cmpb #$FE               ; Si llega al fin de Mascaras,
                 Beq Fin                 ; terminar programa
+                Dex
                 Cpx #Datos              ; Si llega al inicio de Datos,
                 Beq Fin                 ; terminar programa
-                Ldaa 1,X-
+                Ldaa -1,X
                 Eora -1,Y               ; Aplicar mascara con XOR
                 Cmpa #0
                 Bge Ciclo               ; Si (A)>=0, omitir resultado
                 Tfr Y,B
                 Ldy Puntero             ; Guardar resultado de aplicar mascaras
-                Staa 0,Y                ; en la direccion de puntero
-                Inc Puntero
-                Tfr B,Y
+                Staa 1,Y+               ; en la direccion de puntero
+                Sty Puntero
+                Ldaa #$11
+                Exg D,Y
                 Bra Ciclo               ; Pasar a siguiente iteracion
-                
+
 Fin             Bra *                   ; Terminar programa
                 
         
