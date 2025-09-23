@@ -22,7 +22,7 @@ Long:      ds 1
 Cant_4:    ds 1
 
         ORG $1100
-Datos:     db $68, $34, $52, $70, $90, $63, $23, $FA, $C8, $05
+Datos:     db $68, $34, $52, $70, $90, $63, $23, $FA, $C8, $0C
 
         ORG $1200
 Div_4:     ds 255               ; La tabla de Datos tiene menos de 255 elemen-
@@ -51,6 +51,7 @@ Ciclo           Tst Long                ; Si (Long)=0, terminar el programa
                 Movb -1,X, B,Y          ; Guardar el valor divisible por 4 en la
                 Addb #1                 ; tabla sin modificar la direccion en Y
                 Inc Cant_4
+                Bra Ciclo
 Fin             Bra *
                 
                 
