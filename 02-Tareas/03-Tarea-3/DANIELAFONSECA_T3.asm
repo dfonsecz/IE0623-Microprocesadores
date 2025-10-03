@@ -51,8 +51,8 @@ MAIN            Lds #$3BFF
                 Pshx
                 Pshy
                 Jsr ASCII_BIN
-                Ldy #Datos_BIN
-                ;Jsr MOVER
+                Ldx #Datos_BIN
+                Jsr MOVER
                 Bra *
 
 ;*******************************************************************************
@@ -132,7 +132,7 @@ MUL_DEC         Ldaa #10
                 Ldaa Offset                   ; Cargar siguiente byte
                 Ldab A,X
                 Inc Offset
-                Ldaa #0
+                Clra
                 Subb #$30
                 Addd ACC                      ; Sumar unidades a decenas, cen-
                 Std ACC                       ; tenas y millares
@@ -146,41 +146,35 @@ MUL_DEC         Ldaa #10
                 Cmpa CANT
                 Bne Loop
                 Staa CONT
-                Leas -4,SP
+                Leas -4,SP                    ; Reestablecer direccion de retorno
                 Rts
 
 ;*******************************************************************************
 ;                               SUBRUTINA MOVER
 ;*******************************************************************************
 
-MOVER           Ldaa CANT                     ; Guardar CANT en la pila
-                Psha
-Loop_2          Ldaa CANT
-                Ldab A,X
-                Anda $0F
+MOVER           Ldaa 0                        ; Guardar CANT en la pila
+Loop_2          Ldab 1,X+
                 Ldy #Nibble_UP
                 Stab A,Y
-                Inca
-                Staa CANT                     ; Usar CANT como indice
-                Ldab A,X
-                Andb $F0                      ; Obtener la parte alta
+                Ldab 0,X
+                Psha                          ; Guardar contador en la pila
                 Ldaa #4
 Nibb_MED        Tsta
                 Bne ShiftR_3
+                Pula                          ; Reestablecer contador
                 Ldy #Nibble_MED
                 Stab A,Y
                 Bra Nibb_LOW
 ShiftR_3        Lsrb
-                Decb
+                Deca
                 Bra Nibb_MED
-Nibb_LOW        Ldaa CANT
-                Ldab A,X
-                Andb $0F                      ; Obtener la parte baja
+Nibb_LOW        Ldab 1,X+
+                Andb #$0F                     ; Obtener la parte baja
                 Ldy #Nibble_LOW
                 Stab A,Y
-                Pula
-                Psha
-                Cmpb CANT
+                Inca
+                Cmpa CANT                     ; para comparar con CANT
                 Bne Loop_2
                 Rts
 
