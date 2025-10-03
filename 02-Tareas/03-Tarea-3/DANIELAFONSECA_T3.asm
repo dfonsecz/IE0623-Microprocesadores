@@ -29,11 +29,28 @@ ACC:    ds 2            ; Acumulado de calculo de conversion ASCII_BIN
         ORG $1030
 MSG1:   FCC "INGRESE UN VALOR (ENTRE 0 Y 50): "
         db FINMSG
+MSG2:   db CR,CR,LF
+	db CR,CR,LF
+	FCC "CANTIDAD DE VALORES PROCESADOS: %i"
+	db CR,CR,LF
+	db CR,CR,LF
+        db FINMSG
+MSG3:   FCC "Nibble_UP: "
+        db FINMSG
+MSG4:   FCC "Nibble_MED: "
+        db FINMSG
+MSG5:   FCC "Nibble_LOW: "
+        db FINMSG
+MSG6:   FCC "%01x"
+        db FINMSG
+MSG7:   FCC ", "
+        db FINMSG
         
-CRLF:   db CR,LF
+CRLF:   db CR,CR,LF
 
                 ORG $1500
-Datos_IoT:      db $32,$37,$35,$35,$32,$37,$35,$35
+Datos_IoT:      db $00,$01,$02,$09      ; 129
+                db $00,$07,$02,$09      ; 729
 
                 ORG $1600
 Datos_BIN:      ds 100
@@ -53,6 +70,7 @@ MAIN            Lds #$3BFF
                 Jsr ASCII_BIN
                 Ldx #Datos_BIN
                 Jsr MOVER
+                Jsr IMPRIMIR
                 Bra *
 
 ;*******************************************************************************
@@ -179,10 +197,61 @@ Nibb_LOW        Ldab 1,X+
                 Rts
 
 ;*******************************************************************************
-;                               IMPRIMIR
+;                               SUBRUTINA IMPRIMIR
 ;*******************************************************************************
 
-IMPRIMIR        Ldy #0
+IMPRIMIR        Ldx #0
+                Clra
+                Ldab CONT
+                Pshd
+                Ldd #MSG2
+                Jsr [Printf,X]
+                Ldx #0
+                Ldd #MSG3
+                Jsr [Printf,X]
+                Ldy #Nibble_UP
+                Jsr IMPRIMIR_TABLA
+                Ldy #Nibble_MED
+                Jsr IMPRIMIR_TABLA
+                Ldy #Nibble_LOW
+                Jsr IMPRIMIR_TABLA
+                
+                
+;*******************************************************************************
+;                       SUBRUTINA IMPRIMIR_TABLA
+;*******************************************************************************
+
+IMPRIMIR_TABLA  Clra
+        	Ldx #0
+        	Ldy CANT     		      ; Apunta al último elemento
+        	Dey
+Loop_3  	Ldaa 0,Y
+        	Psha
+        	Dey            		      ; Avanzar hacia el anterior
+        	Decb
+        	Bne Loop_3
+
+Loop_4  	Ldd #MSG6          	      ; Carga mensaje base
+        	Jsr [Printf,X]
+
+        	Dey
+        	Cpy #0
+        	Bne Comma          ; Si no llegó a 0, imprime coma y repite
+
+        	Ldx #0             ; Reinicia X a 0
+        	Ldd #MSG6
+        	Jsr [Printf,X]
+
+        	Puld
+        	Rts                ; Termina la rutina
+
+Comma   	Ldd #MSG7          ; Carga mensaje con la coma (", ")
+        	Jsr [Printf,X]
+        	Bra Loop_4         ; Vuelve a imprimir siguiente valor
+
+
+
+                
                 
                 
                 
