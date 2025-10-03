@@ -51,7 +51,7 @@ MAIN            Lds #$3BFF
                 Pshx
                 Pshy
                 Jsr ASCII_BIN
-                ;Ldy #Datos_BIN
+                Ldy #Datos_BIN
                 ;Jsr MOVER
                 Bra *
 
@@ -100,16 +100,16 @@ ResetCant       Movb #0,CANT                  ; Resetear CANT
 ;                           SUBRUTINA ASCII_BIN
 ;*******************************************************************************
 
-ASCII_BIN       Leas 2,SP                        ; Saltar la direccion de retorno
-		Pulx                          ; Desapilar direccion Datos_IoT
+ASCII_BIN       Leas 2,SP                     ; Saltar la direccion de retorno
+                Pulx                          ; Desapilar direccion Datos_Iot
                 Movb #0,CONT
                 Movb #0,ACC
                 Movb #0,Offset
-Loop		Ldaa Offset
+Loop            Ldaa Offset
                 Ldab A,X                      ; Cargar byte de tabla Datos_IoT
                 Clra
                 Inc Offset
-		Subb #$30                      ; Convertir a valor BCD
+                Subb #$30                      ; Convertir a valor BCD
                 Ldy #1000
                 Emul
                 Std ACC                       ; Guardar resultado preliminar
@@ -146,7 +146,7 @@ MUL_DEC         Ldaa #10
                 Cmpa CANT
                 Bne Loop
                 Staa CONT
-                Leas -2,SP
+                Leas -4,SP
                 Rts
 
 ;*******************************************************************************
