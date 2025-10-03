@@ -105,8 +105,9 @@ ASCII_BIN       Leas 2,SP                        ; Saltar la direccion de retorn
                 Movb #0,CONT
                 Movb #0,ACC
                 Movb #0,Offset
-Loop            Ldaa Offset
+Loop		Ldaa Offset
                 Ldab A,X                      ; Cargar byte de tabla Datos_IoT
+                Clra
                 Inc Offset
 		Subb #$30                      ; Convertir a valor BCD
                 Ldy #1000
@@ -139,10 +140,12 @@ MUL_DEC         Ldaa #10
                 Ldaa CONT
                 Movw ACC,A,Y                  ; Guardar resultado en Datos_BIN
                 Pshy                          ; Reapilar direccion Datos_BIN
-                Inc CONT
-                Ldaa CONT
+                Adda #2
+                Staa CONT
+                Lsra
                 Cmpa CANT
                 Bne Loop
+                Staa CONT
                 Leas -2,SP
                 Rts
 
