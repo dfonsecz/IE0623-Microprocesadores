@@ -22,7 +22,7 @@ tTimer1S:         EQU 2000    ;Base de tiempo de 1 segundo (0.5 mS x 2000)
 ;--- Aqui se colocan los valores de carga para los timers de la aplicacion  ----
 
 
-tTimerLDTst       EQU 10     ;Tiempo de parpadeo de LED testigo en segundos
+tTimerLDTst       EQU 1     ;Tiempo de parpadeo de LED testigo en segundos
 
 
                                 Org $1000
@@ -58,7 +58,6 @@ Fin_Base10ms    dB $FF
 
 Tabla_Timers_Base100mS
 
-Timer_LED_Testigo ds 1   ;Timer para parpadeo de led testigo
 Timer1_Base100  ds 1       ;Ejemplos de timers de aplicacpon con base 100 mS
 Timer2_Base100  ds 1
 
@@ -66,7 +65,7 @@ Fin_Base100mS   dB $FF
 
 Tabla_Timers_Base1S
 
-
+Timer_LED_Testigo ds 1   ;Timer para parpadeo de led testigo
 Timer1_Base1S:    ds 1   ;Ejemplos de timers de aplicacion con base 1 seg.
 Timer2_Base1S:    ds 1
 
@@ -130,9 +129,14 @@ Decre_TablaTimers:
 Timer_10mS      Ldd Timer10mS
                 Bne Timer_100mS
                 Movw #tTimer10mS,Timer10mS
+                Ldx #Tabla_Timers_Base10mS
+                Jsr Decre_Timers
+Timer_100mS     Ldd Timer100mS
+                Bne Timer_1S
+                Movw #tTimer100mS,Timer100mS
                 Ldx #Tabla_Timers_Base100mS
                 Jsr Decre_Timers
-Timer_100mS     Ldd Timer1S
+Timer_1S	Ldd Timer1S
                 Bne Rt_Decre_Timers
                 Movw #tTimer1S,Timer1S
                 Ldx #Tabla_Timers_Base1S
@@ -140,7 +144,7 @@ Timer_100mS     Ldd Timer1S
 Rt_Decre_Table  Rts
 
 Decre_Timers:
-  		Ldaa 0,X
+                Ldaa 0,X
                 Beq Inc_X_Index
                 Cmpa #$FF
                 Beq Rt_Decre_Timers
@@ -160,7 +164,7 @@ Maquina_Tiempos:
                Rti
                
 Decre_Timers_BaseT:
- 	       Ldy 2,X+
+               Ldy 2,X+
                Cpy #0
                Beq Decre_Timers_BaseT
                Cpy #$FFFF
