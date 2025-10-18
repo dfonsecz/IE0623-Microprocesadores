@@ -29,6 +29,10 @@ tTimerLDTst:      EQU 1      ;Tiempo de parpadeo de LED testigo en segundos
 PortPB:           EQU PTIH   ;Se define el puerto donde se ubica el PB
 MaskPB:           EQU $01    ;Se define el bit del PB en el puerto
 
+ShortP:           EQU $01
+LongP:            EQU $02
+ArrayOK:          EQU $04
+
 ; Tarea Teclado
                   ORG $1000
 
@@ -62,11 +66,6 @@ Teclas: 	  db $1,$2,$3
         	  db $4,$5,$6
 		  db $7,$8,$9
         	  db $B,$0,$E
-
-; Mascaras
-ShortP:           EQU $01
-LongP:            EQU $02
-ArrayOK:          EQU $04
                                 
 ;===============================================================================
 ;                              TABLA DE TIMERS
