@@ -21,7 +21,8 @@ tTimer1S:         EQU 2000    ;Base de tiempo de 1 segundo (0.5 mS x 2000)
 
 ;--- Aqui se colocan los valores de carga para los timers de la aplicacion  ----
 
-tSupRebPB:        EQU 10     ;Tiempo de supresion de rebotes x 1 mS
+tSupRebPB:        EQU 10     ;Tiempo de supresion de rebotes x 1 mS (PB)
+tSupRebTCL:       EQU 10     ;Tiempo de supresion de rebotes x 1 mS (Teclado)
 tShortP:          EQU 25     ;Tiempo minimo ShortPress x 10 mS
 tLongP:           EQU 5      ;Tiempo minimo LongPress en segundos
 tTimerLDTst:      EQU 1      ;Tiempo de parpadeo de LED testigo en segundos
@@ -236,14 +237,105 @@ FIN_Est4        Rts
 ;******************************************************************************
 
 Tarea_Teclado   Ldx #Est_Pres_TCL
+                Jsr 0,X
+                Rts
 
 ;============================= TECLADO ESTADO 1 ================================
 
+Teclado_Est1    Jsr Leer_Teclado
+                Ldaa Tecla
+                Cmpa $FF
+                Beq FIN_Tecl_Est1
+                Movb #tSupRebTCL,Timer_RebTCL
+                Movw #Teclado_Est2,Est_Pres_TCL
+FIN_Tecl_Est1   Rts
+                
 ;============================= TECLADO ESTADO 2 ================================
 
+Teclado_Est2    Tst Timer_RebTCL
+                Bne FIN_Tecl_Est2
+                Movb Tecla,Tecla_IN
+                Jsr Leer_Teclado
+                Ldaa Tecla_IN
+                Cmpa Tecla
+                Bne Regr_Tecl_Est1
+                Movw #Teclado_Est3,Est_Pres_TCL
+                Bra FIN_Tecl_Est2
+Regr_Tecl_Est1  Movw #Teclado_Est1,Est_Pres_TCL
+FIN_Tecl_Est2   Rts
 ;============================= TECLADO ESTADO 3 ================================
 
+Teclado_Est3    Jsr Leer_Teclado
+                Ldaa Tecla
+                Cmpa $FF
+                Beq FIN_Tecl_Est3
+                Bhi Guardar_Funcion
+                Movw #Teclado_Est4,Est_Pres_TCL
+                Bra FIN_Tecl_Est3
+Guardar_Funcion Movb Tecla_IN,Funcion
+                Movw #Teclado_Est1,Est_Pres_TCL
+FIN_Tecl_Est3   Rts
+
 ;============================= TECLADO ESTADO 4 ================================
+
+Teclado_Est4    Ldaa Tecla_IN
+                Ldab Cont_TCL
+                Ldx #Num_Array
+                Cmpb Max_TCL
+                Beq Es_Borrar
+                Cmpb $01
+                Beq Agregar_Tecl
+                Cmpa $7E
+                Bne Es_Enter2
+                Tst Cont_TCL
+                Bne Borrar_Tecl
+                Bra FIN_Tecl_Est4
+Es_Borrar       Cmpa $7E
+                Bne Es_Enter
+Borrar_Tecl     Movb #$FF,B,X
+                Dec Cont_TCL
+                Bra FIN_Tecl_Est4
+Es_Enter        Cmpa $7B
+                Bne FIN_Tecl_Est4
+Fin_Num_Arr     Movb #0,Cont_TCL
+                Movw #Teclado_Est1,Est_Pres_TCL
+                BSet Banderas,ArrayOK
+                Bra FIN_Tecl_Est4
+Es_Enter2       Cmpa $7B
+                Beq Fin_Num_Arr
+Agregar_Tecl    Staa Tecla_IN
+                Inc Cont_TCL
+FIN_Tecl_Est4   Rts
+
+;******************************************************************************
+;                          SUBRUTINA LEER TECLADO
+;******************************************************************************
+
+Leer_Teclado    Clra
+                Movb #$EF,Patron                ; Patron 11101111 para puerto A
+                Ldx #Teclas                     ; Direccion de tabla Teclas
+Cont_Lectura    Movb Patron,PORTA               ; Escribir Patron en puerto A
+		BrClr PORTA,#$01,Obt_Tecla       ; Si el bit 0 de PORTA es 0,
+                Inca                            ; el btn esta en la 1er columna
+                BrClr PORTA,#$02,Obt_Tecla       ; Si el bit 1 de PORTA es 0,
+                Inca                            ; el btn esta en la 2da columna
+                BrClr PORTA,#$04,Obt_Tecla       ; Si el bit 2 de PORTA es 0,
+                Inca                            ; el btn esta en la 2da columna
+                BrClr PORTA,#$08,Escribir_Patron
+		Ldab Patron
+                Cmpb #$78                       ; Si Patron llega a 01111000,
+                Beq Clr_Tecla                   ; no se presiono ninguna tecla
+                Lsl Patron                      ; Desplazar a la izquierda
+                Bra Cont_Lectura
+Clr_Tecla       Movb #$FF,Tecla                 ; Limpiar valor de Tecla
+                Bra Borrar_Tecl_2
+Obt_Tecla       Movb A,X,Tecla
+                Bra FIN_Leer_Tecl
+Borrar_Tecl_2   Movb #$FF,Tecla
+                Bra FIN_Leer_Tecl
+Escribir_Patron BSet Patron,$0F
+                Movb Patron,Tecla
+FIN_Leer_Tecl   Rts
 
 ;******************************************************************************
 ;                       SUBRUTINA DECRE_TABLATIMERS
