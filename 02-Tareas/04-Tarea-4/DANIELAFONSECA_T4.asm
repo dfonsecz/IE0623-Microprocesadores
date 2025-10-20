@@ -24,7 +24,7 @@ tTimer1S:         EQU 2000    ;Base de tiempo de 1 segundo (0.5 mS x 2000)
 tSupRebPB:        EQU 10     ;Tiempo de supresion de rebotes x 1 mS (PB)
 tSupRebTCL:       EQU 10     ;Tiempo de supresion de rebotes x 1 mS (Teclado)
 tShortP:          EQU 25     ;Tiempo minimo ShortPress x 10 mS
-tLongP:           EQU 5      ;Tiempo minimo LongPress en segundos
+tLongP:           EQU 3      ;Tiempo minimo LongPress en segundos
 tTimerLDTst:      EQU 1      ;Tiempo de parpadeo de LED testigo en segundos
 
 PortPB:           EQU PTIH   ;Se define el puerto donde se ubica el PB
@@ -111,7 +111,7 @@ Fin_Base1S:       dB $FF
 ;===============================================================================
                               Org $2000
 
-        BSet DDRB,$FF     ;Habilitacion del LED Testigo
+        BSet DDRB,$FF     ;Habilitacion de los LEDs
         BSet DDRJ,$02     ;como comprobacion del timer de 1 segundo
         BClr PTJ,$02      ;haciendo toogle
         
@@ -162,24 +162,24 @@ Despachador_Tareas
         Jsr Tarea_Led_Testigo
         Jsr Tarea_LeerPB
         Jsr Tarea_Teclado
-        ;Jsr Tarea_Leds
-        Jsr Tarea_Led_PB
+        Jsr Tarea_Leds
+        ;Jsr Tarea_Led_PB
         Bra Despachador_Tareas
         
 ;******************************************************************************
 ;                                  TAREA LED PB
 ;******************************************************************************
 
-Tarea_LED_PB
-                BrSet Banderas,ShortP,ON ;Si se presiona ShortP enciende LED
-                BrSet Banderas,LongP,OFF ;Si se presiona LongP apaga LED
-                Bra FIN_Led
-ON              BClr Banderas,ShortP     ;Borra las banderas asociadas y
-                BSet PORTB,$01              ;ejecuta la accion
-                Bra FIN_Led
-OFF             BClr Banderas,LongP
-                BClr PORTB,$01
-FIN_Led         Rts
+;Tarea_LED_PB
+;                BrSet Banderas,ShortP,ON ;Si se presiona ShortP enciende LED
+;                BrSet Banderas,LongP,OFF ;Si se presiona LongP apaga LED
+;                Bra FIN_Led
+;ON              BClr Banderas,ShortP     ;Borra las banderas asociadas y
+;                BSet PORTB,$01              ;ejecuta la accion
+;                Bra FIN_Led
+;OFF             BClr Banderas,LongP
+;                BClr PORTB,$01
+;FIN_Led         Rts
        
 ;******************************************************************************
 ;                               TAREA LED TESTIGO
@@ -199,30 +199,29 @@ FinLedTest      Rts
 ;******************************************************************************
 
 Tarea_Leds
-                BrSet Banderas,ShortP,TLeds_ON
-                BrSet Banderas,LongP,TLeds_OFF
+                BrSet Banderas,ShortP,ON        ; ShortPress enciende PH6
+                BrSet Banderas,LongP,OFF
                 Bra Function_Leds
-TLeds_ON        BSet PORTB,$40
-                BClr Banderas,ShortP
-                Bra Function_Leds
-TLeds_OFF       BClr PORTB,$40
-                BClr Banderas,LongP
-                Jsr Borrar_Num_Array
-Function_Leds   Ldaa PORTB
-                Anda $F0
-                Staa PORTB
-                BrClr Funcion,$10,Funcion_1
+ON              BClr Banderas,ShortP     	; Borra banderas asociadas
+                BSet PORTB,$20
                 Bra FIN_Tarea_Leds
-Funcion_1       BSet PORTB,$01
-                BrClr Funcion,$20,Funcion_2
+OFF             BClr Banderas,LongP             ; Borra banderas asociadas
+                BClr PORTB,$20
                 Bra FIN_Tarea_Leds
-Funcion_2       BSet PORTB,$02
-                BrClr Funcion,$40,Funcion_3
+Function_Leds   BClr PORTB,$0F            	; Apaga leds de la parte baja
+                BrClr Funcion,$10,Led_0         ; Si Funcion = 00010000, PB0 ON
+                BrClr Funcion,$20,Led_1         ; Si Funcion = 00100000, PB1 ON
+                BrClr Funcion,$40,Led_2         ; Si Funcion = 01000000, PB2 ON
+                BrClr Funcion,$80,Led_3         ; Si Funcion = 10000000, PB3 ON
                 Bra FIN_Tarea_Leds
-Funcion_3       BSet PORTB,$04
-                BrClr Funcion,$80,Funcion_4
+Led_0           BSet PORTB,$01                  ; Encender PB0
                 Bra FIN_Tarea_Leds
-Funcion_4       BSet PORTB,$08
+Led_1           BSet PORTB,$02                  ; Encender PB1
+                Bra FIN_Tarea_Leds
+Led_2           BSet PORTB,$04                  ; Encender PB2
+                Bra FIN_Tarea_Leds
+Led_3           BSet PORTB,$08                  ; Encender PB3
+                Bra FIN_Tarea_Leds
 FIN_Tarea_Leds  Rts
 
 ;******************************************************************************
@@ -342,8 +341,9 @@ Teclado_Est4    Ldaa Tecla_IN
                 Bra FIN_Tecl_Est4
 Es_Borrar       Cmpa #$0B
                 Bne Es_Enter
-Borrar_Tecl     Movb #$FF,B,X
-                Dec Cont_TCL
+Borrar_Tecl     Dec Cont_TCL
+                Ldab Cont_TCL
+		Movb #$FF,B,X
                 Bra FIN_Tecl_Est4
 Es_Enter        Cmpa #$0E
                 Bne FIN_Tecl_Est4
@@ -372,11 +372,11 @@ Leer_Teclado    Clra
                 Movb #$EF,Patron                ; Patron 11101111 para puerto A
                 Ldx #Teclas                     ; Direccion de tabla Teclas
 Cont_Lectura    Movb Patron,PORTA               ; Escribir Patron en puerto A
-                BrClr PORTA,$01,Obt_Tecla      ; Si el bit 0 de PORTA es 0,
+                BrClr PORTA,$01,Obt_Tecla       ; Si el bit 0 de PORTA es 0,
                 Inca                            ; el btn esta en la 1er columna
-                BrClr PORTA,$02,Obt_Tecla      ; Si el bit 1 de PORTA es 0,
+                BrClr PORTA,$02,Obt_Tecla       ; Si el bit 1 de PORTA es 0,
                 Inca                            ; el btn esta en la 2da columna
-                BrClr PORTA,$04,Obt_Tecla      ; Si el bit 2 de PORTA es 0,
+                BrClr PORTA,$04,Obt_Tecla       ; Si el bit 2 de PORTA es 0,
                 Inca                            ; el btn esta en la 2da columna
                 BrClr PORTA,$08,Escribir_Patron
                 Ldab Patron
