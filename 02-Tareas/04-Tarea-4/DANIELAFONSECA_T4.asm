@@ -163,23 +163,7 @@ Despachador_Tareas
         Jsr Tarea_LeerPB
         Jsr Tarea_Teclado
         Jsr Tarea_Leds
-        ;Jsr Tarea_Led_PB
         Bra Despachador_Tareas
-        
-;******************************************************************************
-;                                  TAREA LED PB
-;******************************************************************************
-
-;Tarea_LED_PB
-;                BrSet Banderas,ShortP,ON ;Si se presiona ShortP enciende LED
-;                BrSet Banderas,LongP,OFF ;Si se presiona LongP apaga LED
-;                Bra FIN_Led
-;ON              BClr Banderas,ShortP     ;Borra las banderas asociadas y
-;                BSet PORTB,$01              ;ejecuta la accion
-;                Bra FIN_Led
-;OFF             BClr Banderas,LongP
-;                BClr PORTB,$01
-;FIN_Led         Rts
        
 ;******************************************************************************
 ;                               TAREA LED TESTIGO
@@ -203,10 +187,10 @@ Tarea_Leds
                 BrSet Banderas,LongP,OFF
                 Bra Function_Leds
 ON              BClr Banderas,ShortP     	; Borra banderas asociadas
-                BSet PORTB,$20
+                BSet PORTB,$40                  ; Encender PB6
                 Bra FIN_Tarea_Leds
 OFF             BClr Banderas,LongP             ; Borra banderas asociadas
-                BClr PORTB,$20
+                BClr PORTB,$40                  ; Apagar PB6
                 Bra FIN_Tarea_Leds
 Function_Leds   BClr PORTB,$0F            	; Apaga leds de la parte baja
                 BrClr Funcion,$10,Led_0         ; Si Funcion = 00010000, PB0 ON
