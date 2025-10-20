@@ -37,7 +37,7 @@ ArrayOK:          EQU $04
 ; Tarea Teclado
                   ORG $1000
 
-MAX_TCL:          ds 1       ; Limite maximo del tamano de Num_Array
+MAX_TCL:          db $05       ; Limite maximo del tamano de Num_Array
 Tecla:            ds 1       ; Variable para guardar la tecla actual
 Tecla_IN:         ds 1       ; Variable para guardar la tecla ingresada
 Cont_TCL:         ds 1       ; Variable para guardar tamano actual de Num_Array
@@ -59,7 +59,6 @@ Est_Pres_LeerPB:  ds 2       ; Variable para direccion de estado de maquina de
                   ORG $1010
 Num_Array:        ds 5       ; Array donde guardar valores ingresados por el
                              ; teclado
-Banderas_PB:      ds 1
 
 ; Codigos de Teclas validas
                   ORG $1020
@@ -122,11 +121,14 @@ Fin_Base1S:       dB $FF
         Movb #$13,RTICTL   ;Se configura RTI con un periodo de 0.5 mS
         Bset CRGINT,$80
         
+        Movb #$F0,DDRA
+        BSet PUCR,$01
+        
 ;===============================================================================
 ;                           PROGRAMA PRINCIPAL
 ;===============================================================================
 
-	Movw #tTimer1mS,Timer1mS
+        Movw #tTimer1mS,Timer1mS
         Movw #tTimer10mS,Timer10mS         ;Inicia los timers de bases de tiempo
         Movw #tTimer100mS,Timer100mS
         Movw #tTimer1S,Timer1S
@@ -147,7 +149,7 @@ Fin_Base1S:       dB $FF
         
         Lds #$3BFF
         Cli
-        Clr Banderas_PB
+        Clr Banderas
 
         
 ;===============================================================================
@@ -156,12 +158,12 @@ Fin_Base1S:       dB $FF
 
 Despachador_Tareas
 
+        Jsr Decre_TablaTimers
         Jsr Tarea_Led_Testigo
-        Jsr Tarea_Led_PB
         Jsr Tarea_LeerPB
         Jsr Tarea_Teclado
-        Jsr Tarea_Leds
-        Jsr Decre_TablaTimers
+        ;Jsr Tarea_Leds
+        Jsr Tarea_Led_PB
         Bra Despachador_Tareas
         
 ;******************************************************************************
@@ -169,13 +171,13 @@ Despachador_Tareas
 ;******************************************************************************
 
 Tarea_LED_PB
-                BrSet Banderas_PB,ShortP,ON ;Si se presiona ShortP enciende LED
-                BrSet Banderas_PB,LongP,OFF ;Si se presiona LongP apaga LED
+                BrSet Banderas,ShortP,ON ;Si se presiona ShortP enciende LED
+                BrSet Banderas,LongP,OFF ;Si se presiona LongP apaga LED
                 Bra FIN_Led
-ON              BClr Banderas_PB,ShortP     ;Borra las banderas asociadas y
+ON              BClr Banderas,ShortP     ;Borra las banderas asociadas y
                 BSet PORTB,$01              ;ejecuta la accion
                 Bra FIN_Led
-OFF             BClr Banderas_PB,LongP
+OFF             BClr Banderas,LongP
                 BClr PORTB,$01
 FIN_Led         Rts
        
@@ -197,14 +199,14 @@ FinLedTest      Rts
 ;******************************************************************************
 
 Tarea_Leds
-                BrSet Banderas_PB,ShortP,TLeds_ON
-                BrSet Banderas_PB,LongP,TLeds_OFF
+                BrSet Banderas,ShortP,TLeds_ON
+                BrSet Banderas,LongP,TLeds_OFF
                 Bra Function_Leds
 TLeds_ON        BSet PORTB,$40
-                BClr Banderas_PB,ShortP
+                BClr Banderas,ShortP
                 Bra Function_Leds
 TLeds_OFF       BClr PORTB,$40
-                BClr Banderas_PB,LongP
+                BClr Banderas,LongP
                 Jsr Borrar_Num_Array
 Function_Leds   Ldaa PORTB
                 Anda $F0
@@ -212,14 +214,14 @@ Function_Leds   Ldaa PORTB
                 BrClr Funcion,$10,Funcion_1
                 Bra FIN_Tarea_Leds
 Funcion_1       BSet PORTB,$01
-	        BrClr Funcion,$20,Funcion_2
-	        Bra FIN_Tarea_Leds
+                BrClr Funcion,$20,Funcion_2
+                Bra FIN_Tarea_Leds
 Funcion_2       BSet PORTB,$02
-	        BrClr Funcion,$40,Funcion_3
-	        Bra FIN_Tarea_Leds
+                BrClr Funcion,$40,Funcion_3
+                Bra FIN_Tarea_Leds
 Funcion_3       BSet PORTB,$04
-	        BrClr Funcion,$80,Funcion_4
-	        Bra FIN_Tarea_Leds
+                BrClr Funcion,$80,Funcion_4
+                Bra FIN_Tarea_Leds
 Funcion_4       BSet PORTB,$08
 FIN_Tarea_Leds  Rts
 
@@ -261,7 +263,7 @@ LeerPB_Est3
                 BrSet PortPB,MaskPB,Ret_Est1_2
                 Movw #LeerPB_Est4,Est_Pres_LeerPB
                 Bra FIN_Est3
-Ret_Est1_2      BSet Banderas_PB,ShortP
+Ret_Est1_2      BSet Banderas,ShortP
                 Movw #LeerPB_Est1,Est_Pres_LeerPB
 FIN_Est3        Rts
 
@@ -270,11 +272,11 @@ FIN_Est3        Rts
 LeerPB_Est4     Tst Timer_LP
                 Bne TestPB
                 BrClr PortPB,MaskPB,FIN_Est4
-                BSet Banderas_PB,LongP
+                BSet Banderas,LongP
 Ret_Est1_3      Movw #LeerPB_Est1,Est_Pres_LeerPB
                 Bra FIN_Est4
 TestPB          BrClr PortPB,MaskPB,FIN_Est4
-                BSet Banderas_PB,ShortP
+                BSet Banderas,ShortP
                 Bra Ret_Est1_3
 FIN_Est4        Rts
 
@@ -282,7 +284,7 @@ FIN_Est4        Rts
 ;                               TAREA TECLADO
 ;******************************************************************************
 
-Tarea_Teclado   Ldx #Est_Pres_TCL
+Tarea_Teclado   Ldx Est_Pres_TCL
                 Jsr 0,X
                 Rts
 
@@ -290,7 +292,7 @@ Tarea_Teclado   Ldx #Est_Pres_TCL
 
 Teclado_Est1    Jsr Leer_Teclado
                 Ldaa Tecla
-                Cmpa $FF
+                Cmpa #$FF
                 Beq FIN_Tecl_Est1
                 Movb #tSupRebTCL,Timer_RebTCL
                 Movw #Teclado_Est2,Est_Pres_TCL
@@ -313,7 +315,7 @@ FIN_Tecl_Est2   Rts
 
 Teclado_Est3    Jsr Leer_Teclado
                 Ldaa Tecla
-                Cmpa $FF
+                Cmpa #$FF
                 Bne FIN_Tecl_Est3
                 Ldaa Tecla_IN
                 Cmpa #15
@@ -356,10 +358,11 @@ Primera_Tecla   Cmpa #$0B
                 Bra Agregar_Tecl
 Es_Enter2       Cmpa #$0E
                 Beq Fin_Num_Arr
-Agregar_Tecl    Staa Tecla_IN
+Agregar_Tecl    Movb Tecla_IN,B,X
                 Inc Cont_TCL
 FIN_Tecl_Est4   Movb #$FF,Tecla_IN
-		Rts
+                Movw #Teclado_Est1,Est_Pres_TCL
+                Rts
 
 ;******************************************************************************
 ;                          SUBRUTINA LEER TECLADO
@@ -369,13 +372,13 @@ Leer_Teclado    Clra
                 Movb #$EF,Patron                ; Patron 11101111 para puerto A
                 Ldx #Teclas                     ; Direccion de tabla Teclas
 Cont_Lectura    Movb Patron,PORTA               ; Escribir Patron en puerto A
-                BrClr PORTA,#$01,Obt_Tecla      ; Si el bit 0 de PORTA es 0,
+                BrClr PORTA,$01,Obt_Tecla      ; Si el bit 0 de PORTA es 0,
                 Inca                            ; el btn esta en la 1er columna
-                BrClr PORTA,#$02,Obt_Tecla      ; Si el bit 1 de PORTA es 0,
+                BrClr PORTA,$02,Obt_Tecla      ; Si el bit 1 de PORTA es 0,
                 Inca                            ; el btn esta en la 2da columna
-                BrClr PORTA,#$04,Obt_Tecla      ; Si el bit 2 de PORTA es 0,
+                BrClr PORTA,$04,Obt_Tecla      ; Si el bit 2 de PORTA es 0,
                 Inca                            ; el btn esta en la 2da columna
-                BrClr PORTA,#$08,Escribir_Patron
+                BrClr PORTA,$08,Escribir_Patron
                 Ldab Patron
                 Cmpb #$78                       ; Si Patron llega a 01111000,
                 Beq Clr_Tecla                   ; no se presiono ninguna tecla
