@@ -187,10 +187,11 @@ Tarea_Leds
                 BrSet Banderas,LongP,OFF
                 Bra Function_Leds
 ON              BClr Banderas,ShortP     	; Borra banderas asociadas
-                BSet PORTB,$40                  ; Encender PB6
+                BSet PORTB,$20                  ; Encender PB6
                 Bra FIN_Tarea_Leds
 OFF             BClr Banderas,LongP             ; Borra banderas asociadas
-                BClr PORTB,$40                  ; Apagar PB6
+                BClr PORTB,$20                  ; Apagar PB6
+                Jsr Borrar_Num_Array
                 Bra FIN_Tarea_Leds
 Function_Leds   BClr PORTB,$0F            	; Apaga leds de la parte baja
                 BrClr Funcion,$10,Led_0         ; Si Funcion = 00010000, PB0 ON
@@ -370,12 +371,12 @@ Cont_Lectura    Movb Patron,PORTA               ; Escribir Patron en puerto A
                 Bra Cont_Lectura
 Clr_Tecla       Movb #$FF,Tecla                 ; Limpiar valor de Tecla
                 Bra FIN_Leer_Tecl
-Obt_Tecla       Movb A,X,Tecla
+Obt_Tecla       Movb A,X,Tecla                  ; Cargar valor de Tecla de tabla
                 Bra FIN_Leer_Tecl
-Borrar_Tecl_2   Movb #$FF,Tecla
+Borrar_Tecl_2   Movb #$FF,Tecla                 ; Limpiar valor de Tecla
                 Bra FIN_Leer_Tecl
-Escribir_Patron BSet Patron,$0F
-                Movb Patron,Tecla
+Escribir_Patron BSet Patron,$0F                 ; Patron.3:Patron.0 = $F
+                Movb Patron,Tecla               ; Pasar Patron a Tecla
 FIN_Leer_Tecl   Rts
 
 ;******************************************************************************
@@ -387,7 +388,8 @@ Borrar_Num_Array
                 Clra
 Ciclo_BNA       Movb #$FF,1,X+
                 Inca
-                Bne Borrar_Num_Array
+                Cmpa MAX_TCL
+                Bne Ciclo_BNA
                 Rts
 
 ;******************************************************************************
