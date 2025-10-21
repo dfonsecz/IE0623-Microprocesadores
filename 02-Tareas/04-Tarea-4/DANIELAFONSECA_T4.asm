@@ -186,14 +186,14 @@ Tarea_Leds
                 BrSet Banderas,ShortP,ON        ; ShortPress enciende PH6
                 BrSet Banderas,LongP,OFF
                 Bra Function_Leds
-ON              BClr Banderas,ShortP     	; Borra banderas asociadas
-                BSet PORTB,$20                  ; Encender PB6
+ON              BClr Banderas,ShortP            ; Borra banderas asociadas
+                BSet PORTB,$40                  ; Encender PB6
                 Bra FIN_Tarea_Leds
 OFF             BClr Banderas,LongP             ; Borra banderas asociadas
-                BClr PORTB,$20                  ; Apagar PB6
+                BClr PORTB,$40                  ; Apagar PB6
                 Jsr Borrar_Num_Array
                 Bra FIN_Tarea_Leds
-Function_Leds   BClr PORTB,$0F            	; Apaga leds de la parte baja
+Function_Leds   BClr PORTB,$0F                  ; Apaga leds de la parte baja
                 BrClr Funcion,$10,Led_0         ; Si Funcion = 00010000, PB0 ON
                 BrClr Funcion,$20,Led_1         ; Si Funcion = 00100000, PB1 ON
                 BrClr Funcion,$40,Led_2         ; Si Funcion = 01000000, PB2 ON
@@ -221,43 +221,43 @@ FinTareaPB      Rts
 ;============================= LEER PB ESTADO 1 ================================
 
 LeerPB_Est1
-                BrSet PortPB,MaskPB,FIN_Est1
-No_FIN_Est1     Movb #tSupRebPB,Timer_RebPB
+                BrSet PortPB,MaskPB,FIN_Est1      ; Si el boton es presionado
+No_FIN_Est1     Movb #tSupRebPB,Timer_RebPB       ; Cargar timers
                 Movb #tShortP,Timer_SHP
                 Movb #tLongP,Timer_LP
-                Movw #LeerPB_Est2,Est_Pres_LeerPB
+                Movw #LeerPB_Est2,Est_Pres_LeerPB ; Continuar a estado 2
 FIN_Est1        Rts
 
 ;============================= LEER PB ESTADO 2 ================================
 
 LeerPB_Est2
-                Tst Timer_RebPB
-                Bne FIN_Est2
-                BrSet PortPB,MaskPB,Ret_Est1_1
+                Tst Timer_RebPB                   ; Si se agota el timer
+                Bne FIN_Est2                      ; verificar si aun sigue pre-
+                BrSet PortPB,MaskPB,Ret_Est1_1    ; sionado el boton
                 Movw #LeerPB_Est3,Est_Pres_LeerPB
                 Bra FIN_Est2
-Ret_Est1_1      Movw #LeerPB_Est1,Est_Pres_LeerPB
+Ret_Est1_1      Movw #LeerPB_Est1,Est_Pres_LeerPB ; Sino regresar a estado 1
 FIN_Est2        Rts
 
 ;============================= LEER PB ESTADO 3 ================================
 
 LeerPB_Est3
-                Tst Timer_SHP
-                Bne FIN_Est3
-                BrSet PortPB,MaskPB,Ret_Est1_2
-                Movw #LeerPB_Est4,Est_Pres_LeerPB
+                Tst Timer_SHP                     ; Verificar si el timer short
+                Bne FIN_Est3                      ; press se agoto
+                BrSet PortPB,MaskPB,Ret_Est1_2    ; Si se presiona el boton
+                Movw #LeerPB_Est4,Est_Pres_LeerPB ; Sino, pasar a estado 4
                 Bra FIN_Est3
-Ret_Est1_2      BSet Banderas,ShortP
-                Movw #LeerPB_Est1,Est_Pres_LeerPB
+Ret_Est1_2      BSet Banderas,ShortP              ; Levantar bandera ShortP y
+                Movw #LeerPB_Est1,Est_Pres_LeerPB ; regresar a estado 1
 FIN_Est3        Rts
 
 ;============================= LEER PB ESTADO 4 ================================
 
-LeerPB_Est4     Tst Timer_LP
-                Bne TestPB
-                BrClr PortPB,MaskPB,FIN_Est4
+LeerPB_Est4     Tst Timer_LP                      ; Si no se agota el timer long
+                Bne TestPB                        ; press, y se presiona el boton
+                BrClr PortPB,MaskPB,FIN_Est4      ; es un short press
                 BSet Banderas,LongP
-Ret_Est1_3      Movw #LeerPB_Est1,Est_Pres_LeerPB
+Ret_Est1_3      Movw #LeerPB_Est1,Est_Pres_LeerPB ; sino es un long press
                 Bra FIN_Est4
 TestPB          BrClr PortPB,MaskPB,FIN_Est4
                 BSet Banderas,ShortP
@@ -274,26 +274,26 @@ Tarea_Teclado   Ldx Est_Pres_TCL
 
 ;============================= TECLADO ESTADO 1 ================================
 
-Teclado_Est1    Jsr Leer_Teclado
+Teclado_Est1    Jsr Leer_Teclado                  ; Si se presiona alguna tecla
                 Ldaa Tecla
                 Cmpa #$FF
                 Beq FIN_Tecl_Est1
-                Movb #tSupRebTCL,Timer_RebTCL
-                Movw #Teclado_Est2,Est_Pres_TCL
+                Movb #tSupRebTCL,Timer_RebTCL     ; carga timer de supresion de
+                Movw #Teclado_Est2,Est_Pres_TCL   ; rebotes y siguiente estado
 FIN_Tecl_Est1   Rts
                 
 ;============================= TECLADO ESTADO 2 ================================
 
-Teclado_Est2    Tst Timer_RebTCL
-                Bne FIN_Tecl_Est2
+Teclado_Est2    Tst Timer_RebTCL                  ; Si no se agota el timer,
+                Bne FIN_Tecl_Est2                 ; verifica si Tecla = Tecla_IN
                 Movb Tecla,Tecla_IN
                 Jsr Leer_Teclado
                 Ldaa Tecla_IN
                 Cmpa Tecla
                 Bne Regr_Tecl_Est1
-                Movw #Teclado_Est3,Est_Pres_TCL
+                Movw #Teclado_Est3,Est_Pres_TCL   ; Si son iguales pasa a est 3
                 Bra FIN_Tecl_Est2
-Regr_Tecl_Est1  Movw #Teclado_Est1,Est_Pres_TCL
+Regr_Tecl_Est1  Movw #Teclado_Est1,Est_Pres_TCL   ; Sino se devuelve al 1
 FIN_Tecl_Est2   Rts
 ;============================= TECLADO ESTADO 3 ================================
 
@@ -301,12 +301,12 @@ Teclado_Est3    Jsr Leer_Teclado
                 Ldaa Tecla
                 Cmpa #$FF
                 Bne FIN_Tecl_Est3
-                Ldaa Tecla_IN
-                Cmpa #15
+                Ldaa Tecla_IN                     ; Si la tecla ingresada es de
+                Cmpa #15                          ; funcion, la guarda se
                 Bhi Guardar_Funcion
-                Movw #Teclado_Est4,Est_Pres_TCL
+                Movw #Teclado_Est4,Est_Pres_TCL   ; devuelve al estado 1
                 Bra FIN_Tecl_Est3
-Guardar_Funcion Movb Tecla_IN,Funcion
+Guardar_Funcion Movb Tecla_IN,Funcion             ; sino pasa al estado 4
                 Movw #Teclado_Est1,Est_Pres_TCL
 FIN_Tecl_Est3   Rts
 
@@ -315,38 +315,38 @@ FIN_Tecl_Est3   Rts
 Teclado_Est4    Ldaa Tecla_IN
                 Ldab Cont_TCL
                 Ldx #Num_Array
-                Cmpb Max_TCL
+                Cmpb Max_TCL                    ; Si alcanzo el maximo de cifras
                 Beq Es_Borrar
-                Tstb
+                Tstb                            ; Es la primera tecla?
                 Beq Primera_Tecla
-                Cmpa #$0B
+                Cmpa #$0B                       ; Es la tecla Borrar ($0B)?
                 Bne Es_Enter2
-                Tst Cont_TCL
+                Tst Cont_TCL                    ; El offset llego a 0?
                 Bne Borrar_Tecl
                 Bra FIN_Tecl_Est4
-Es_Borrar       Cmpa #$0B
+Es_Borrar       Cmpa #$0B                       ; Es la tecla Borrar ($0B)?
                 Bne Es_Enter
-Borrar_Tecl     Dec Cont_TCL
+Borrar_Tecl     Dec Cont_TCL                    ; Borrar la tecla de Num_Array
                 Ldab Cont_TCL
-		Movb #$FF,B,X
+                Movb #$FF,B,X
                 Bra FIN_Tecl_Est4
-Es_Enter        Cmpa #$0E
+Es_Enter        Cmpa #$0E                       ; Es la tecla Enter ($0E)?
                 Bne FIN_Tecl_Est4
-Fin_Num_Arr     Movb #0,Cont_TCL
+Fin_Num_Arr     Movb #0,Cont_TCL                ; Resetear offset
                 Movw #Teclado_Est1,Est_Pres_TCL
-                BSet Banderas,ArrayOK
+                BSet Banderas,ArrayOK           ; Indicar que Num_Array esta listo
                 Bra FIN_Tecl_Est4
-Primera_Tecla   Cmpa #$0B
+Primera_Tecla   Cmpa #$0B                       ; Es la tecla Borrar ($0B)?
                 Beq FIN_Tecl_Est4
-                Cmpa #$0E
+                Cmpa #$0E                       ; Es la tecla Enter ($0E)?
                 Beq FIN_Tecl_Est4
                 Bra Agregar_Tecl
 Es_Enter2       Cmpa #$0E
                 Beq Fin_Num_Arr
-Agregar_Tecl    Movb Tecla_IN,B,X
-                Inc Cont_TCL
-FIN_Tecl_Est4   Movb #$FF,Tecla_IN
-                Movw #Teclado_Est1,Est_Pres_TCL
+Agregar_Tecl    Movb Tecla_IN,B,X               ; Guardar la tecla ingresada
+                Inc Cont_TCL                    ; en Num_Array
+FIN_Tecl_Est4   Movb #$FF,Tecla_IN              ; Limpiar valor Tecla_IN
+                Movw #Teclado_Est1,Est_Pres_TCL ; Regresar a estado 1
                 Rts
 
 ;******************************************************************************
@@ -386,10 +386,10 @@ FIN_Leer_Tecl   Rts
 Borrar_Num_Array
                 Ldx #Num_Array
                 Clra
-Ciclo_BNA       Movb #$FF,1,X+
-                Inca
-                Cmpa MAX_TCL
-                Bne Ciclo_BNA
+Ciclo_BNA       Movb #$FF,1,X+                  ; Limpiar posicion de memoria
+                Inca                            ; actual en Num_Array con $FF
+                Cmpa MAX_TCL                    ; Si llega al maximo de elementos
+                Bne Ciclo_BNA                   ; salir
                 Rts
 
 ;******************************************************************************
