@@ -13,10 +13,10 @@
 
 ;--- Aqui se colocan los valores de carga para los timers baseT  ----
 
-tTimer1mS:        EQU 50     ;Base de tiempo de 1 mS (20 uS x 2)
-tTimer10mS:       EQU 500    ;Base de tiempo de 10 mS (20 uS x 20)
-tTimer100mS:      EQU 5000    ;Base de tiempo de 100 mS (20 uS x 200)
-tTimer1S:         EQU 50000    ;Base de tiempo de 1 segundo (20 uS x 2000)
+tTimer1mS:        EQU 50     ;Base de tiempo de 1 mS (20 uS x 1)
+tTimer10mS:       EQU 500    ;Base de tiempo de 10 mS (20 uS x 10)
+tTimer100mS:      EQU 5000    ;Base de tiempo de 100 mS (20 uS x 100)
+tTimer1S:         EQU 50000    ;Base de tiempo de 1 segundo (20 uS x 1000)
 
 ;--- Aqui se colocan los valores de carga para los timers de la aplicacion  ----
 
@@ -25,7 +25,7 @@ tSupRebPB:        EQU 10     ;Tiempo de supresion de rebotes x 1 mS (PB)
 tSupRebTCL:       EQU 10     ;Tiempo de supresion de rebotes x 1 mS (Teclado)
 tShortP:          EQU 25     ;Tiempo minimo ShortPress x 10 mS
 tLongP:           EQU 3      ;Tiempo minimo LongPress en segundos
-tTimerLDTst:      EQU 1      ;Tiempo de parpadeo de LED testigo en segundos
+tTimerLDTst:      EQU 5      ;Tiempo de parpadeo de LED testigo x 100 mS
 
 PortPB:           EQU PTIH   ;Se define el puerto donde se ubica el PB
 MaskPB:           EQU $01    ;Se define el bit del PB en el puerto
@@ -73,8 +73,6 @@ Teclas:           db $01,$02,$03
                   ORG $1500
 Tabla_Timers_BaseT:
 
-Timer40uS:      ds 2
-Timer260uS:     ds 2
 Timer1mS:       ds 2       ;Timer 1 ms con base a tiempo de interrupcion
 Timer10mS:      ds 2       ;Timer para generar la base de tiempo 10 mS
 Timer100mS:     ds 2       ;Timer para generar la base de tiempo de 100 mS
@@ -102,11 +100,11 @@ Tabla_Timers_Base100mS
 Timer1_100mS:   ds 1
 
 Fin_Base100mS:  dB $FF
+TimerLDTst:      ds 1
 
 Tabla_Timers_Base1S
 
 Timer_LP:               ds 1
-Timer_LED_Testigo:      ds 1
 
 Fin_Base1S:       dB $FF
 
@@ -123,7 +121,7 @@ Fin_Base1S:       dB $FF
         Movb #$0F,PTP
 
         Movw #30,MCCNT
-        Movb #$87,MCCTL   ; Habilitar interrupciones module count down con
+        Movb #$E7,MCCTL   ; Habilitar interrupciones module count down con
                           ; divisor 16
         
         Movb #$F0,DDRA
@@ -175,13 +173,23 @@ Despachador_Tareas
 ;******************************************************************************
 
 Tarea_Led_Testigo
-                Tst Timer_LED_Testigo
-                Bne FinLedTest
-                Movb #tTimerLDTst,Timer_LED_Testigo
-                Ldaa PORTB
-                Eora #$80
-                Staa PORTB
+                Movw #TareaLDTst_Est1,EstPres_TareaLDTst
+                Jsr 0,X
 FinLedTest      Rts
+
+;========================= TAREA LED TESTIGO ESTADO 1 ==========================
+
+TareaLDTst_Est1
+                Tst TimerLDTst
+                Bne FIN_LDTst
+                
+FIN_LDTst       Rts
+
+;========================= TAREA LED TESTIGO ESTADO 2 ==========================
+
+;========================= TAREA LED TESTIGO ESTADO 3 ==========================
+
+;========================= TAREA LED TESTIGO ESTADO 4 ==========================
 
 ;******************************************************************************
 ;                                  TAREA LEDS
@@ -435,10 +443,11 @@ Inc_X_Index     Inx
 Rt_Decre_Timers Rts
 
 ;******************************************************************************
-;                    SUBRUTINA DE ATENCION OUTPUT COMPARE
+;                   SUBRUTINA DE ATENCION MODULE COUNT DOWN
 ;******************************************************************************
 
 Maquina_Tiempos:
+               BSet MCFLG,$80
                Ldx #Tabla_Timers_BaseT
                Jsr Decre_Timers_BaseT
                Rti
