@@ -1,3 +1,4 @@
+
  ;******************************************************************************
  ;                          TAREA 5 - PANTALLAS LCD
  ;******************************************************************************
@@ -25,7 +26,7 @@ tSupRebPB:        EQU 10     ;Tiempo de supresion de rebotes x 1 mS (PB)
 tSupRebTCL:       EQU 10     ;Tiempo de supresion de rebotes x 1 mS (Teclado)
 tShortP:          EQU 25     ;Tiempo minimo ShortPress x 10 mS
 tLongP:           EQU 3      ;Tiempo minimo LongPress en segundos
-tTimerLDTst:      EQU 5      ;Tiempo de parpadeo de LED testigo x 100 mS
+tTimerLDTst:      EQU 1      ;Tiempo de parpadeo de LED testigo x 100 mS
 
 PortPB:           EQU PTIH   ;Se define el puerto donde se ubica el PB
 MaskPB:           EQU $01    ;Se define el bit del PB en el puerto
@@ -51,7 +52,7 @@ Num_Array:        ds 5       ; Array donde guardar valores ingresados por el
                              
 ;============================ TAREA PANTALLA MUX ===============================
 
-                  	ORG $1020
+                          ORG $1020
 EstPres_PantallaMUX:    ds 2 ; Variable para guardar estado de tarea de pantalla
                              ; multiplexada
 Dsp1:             ds 1
@@ -105,6 +106,10 @@ RS:               EQU $01
 LCD_OK:           EQU $02
 FinSendLCD:       EQU $04
 Second_Line:      EQU $08
+
+LD_Red:           EQU $10
+LD_Green:         EQU $20
+LD_Blue:          EQU $40
 
 ;============================== TAREA LED TESTIGO ==============================
 
@@ -165,13 +170,13 @@ Tabla_Timers_Base100mS
 Timer1_100mS:   ds 1
 
 Fin_Base100mS:  dB $FF
-TimerLDTst:      ds 1
 
 Tabla_Timers_Base1S
 
-Timer_LP:               ds 1
+Timer_LP:        ds 1
+TimerLDTst:      ds 1
 
-Fin_Base1S:       dB $FF
+Fin_Base1S:      dB $FF
 
 ;===============================================================================
 ;                              CONFIGURACION DE HARDWARE
@@ -182,12 +187,15 @@ Fin_Base1S:       dB $FF
         BSet DDRJ,$02     ;como comprobacion del timer de 1 segundo
         BClr PTJ,$02      ;haciendo toogle
 
-        Movb #$0F,DDRP    ;bloquea los display de 7 Segmentos
-        Movb #$0F,PTP
-
-        Movw #30,MCCNT
-        Movb #$E7,MCCTL   ; Habilitar interrupciones module count down con
+        BSet DDRP,$7F
+        BClr PTP,$0F
+        
+        
+        BClr MCCTL,#$04    ; Borrar enable
+        Movb #$C3,MCCTL   ; Habilitar interrupciones module count down con
                           ; divisor 16
+        BSet MCCTL,#$04    ; Poner el enable
+        Movw #30,MCCNT    ; Cargar valor inicial de contador
         
         Movb #$F0,DDRA
         BSet PUCR,$01
@@ -228,9 +236,9 @@ Despachador_Tareas
 
         Jsr Decre_TablaTimers
         Jsr Tarea_Led_Testigo
-        ;Jsr Tarea_LeerPB
-        ;Jsr Tarea_Teclado
-        ;Jsr Tarea_Leds
+        Jsr Tarea_LeerPB
+        Jsr Tarea_Teclado
+        Jsr Tarea_Leds
         Bra Despachador_Tareas
        
 ;******************************************************************************
@@ -238,7 +246,7 @@ Despachador_Tareas
 ;******************************************************************************
 
 Tarea_Led_Testigo
-                Movw #TareaLDTst_Est1,EstPres_LDTst
+                Ldx #TareaLDTst_Est1
                 Jsr 0,X
 FinLedTest      Rts
 
@@ -246,13 +254,37 @@ FinLedTest      Rts
 
 TareaLDTst_Est1
                 Tst TimerLDTst
-                Bne FIN_LDTst
-                
-FIN_LDTst       Rts
+                Bne FIN_LDTst_1
+                BSet PTP,LD_Red
+                BClr PTP,LD_Green
+                BClr PTP,LD_Blue
+                Movw #TareaLDTst_Est2,EstPres_LDTst
+                Movb #tTimerLDTst,TimerLDTst
+FIN_LDTst_1     Rts
 
 ;========================= TAREA LED TESTIGO ESTADO 2 ==========================
 
+TareaLDTst_Est2
+                Tst TimerLDTst
+                Bne FIN_LDTst_2
+                BClr PTP,LD_Red
+                BSet PTP,LD_Green
+                BClr PTP,LD_Blue
+                Movw #TareaLDTst_Est3,EstPres_LDTst
+                Movb #tTimerLDTst,TimerLDTst
+FIN_LDTst_2     Rts
+
 ;========================= TAREA LED TESTIGO ESTADO 3 ==========================
+
+TareaLDTst_Est3
+                Tst TimerLDTst
+                Bne FIN_LDTst_3
+                BClr PTP,LD_Red
+                BClr PTP,LD_Green
+                BSet PTP,LD_Blue
+                Movw #TareaLDTst_Est1,EstPres_LDTst
+                Movb #tTimerLDTst,TimerLDTst
+FIN_LDTst_3     Rts
 
 ;========================= TAREA LED TESTIGO ESTADO 4 ==========================
 
@@ -512,9 +544,9 @@ Rt_Decre_Timers Rts
 ;******************************************************************************
 
 Maquina_Tiempos:
-               BSet MCFLG,$80
                Ldx #Tabla_Timers_BaseT
                Jsr Decre_Timers_BaseT
+               BSet MCFLG,$80
                Rti
                
 Decre_Timers_BaseT:
