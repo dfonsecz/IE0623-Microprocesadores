@@ -27,6 +27,7 @@ tSupRebTCL:       EQU 10     ;Tiempo de supresion de rebotes x 1 mS (Teclado)
 tShortP:          EQU 25     ;Tiempo minimo ShortPress x 10 mS
 tLongP:           EQU 3      ;Tiempo minimo LongPress en segundos
 tTimerLDTst:      EQU 5      ;Tiempo de parpadeo de LED testigo x 100 mS
+tTimerDigito:     EQU 2
 
 PortPB:           EQU PTIH   ;Se define el puerto donde se ubica el PB
 MaskPB:           EQU $01    ;Se define el bit del PB en el puerto
@@ -55,10 +56,10 @@ Num_Array:        ds 5       ; Array donde guardar valores ingresados por el
                           ORG $1020
 EstPres_PantallaMUX:    ds 2 ; Variable para guardar estado de tarea de pantalla
                              ; multiplexada
-Dsp1:             ds 1
-Dsp2:             ds 1
-Dsp3:             ds 1
-Dsp4:             ds 1
+Dsp1:             db #$3F
+Dsp2:             db #$06
+Dsp3:             db #$5B
+Dsp4:             db #$4F
 LEDS:             ds 1
 Cont_Dig:         ds 1
 Brillo:           ds 1
@@ -70,7 +71,7 @@ BCD1:             ds 1
 BCD2:             ds 1
 
 ; Valores
-MaxCountTicks     EQU 5
+MaxCountTicks     EQU 100
 DIG1              EQU $01
 DIG2              EQU $02
 DIG3              EQU $04
@@ -128,7 +129,16 @@ EstPres_LDTst     ds 1
 ;==================================== TABLAS ===================================
 
                   ORG $1100
-Segment:
+Segment:          db $3F                ; "0"
+                  db $06                ; "1"
+                  db $5B                ; "2"
+                  db $4F                ; "3"
+                  db $66                ; "4"
+                  db $6D                ; "5"
+                  db $7D                ; "6"
+                  db $07                ; "7"
+                  db $7F                ; "8"
+                  db $6F                ; "9"
 
 ; Codigos de Teclas validas
                   ORG $1110
@@ -219,10 +229,17 @@ Fin_Base1S:      dB $FF
         Movb #tTimerLDTst,TimerLDTst  ;inicia timer parpadeo led testigo
         Movb #0,Timer_LP
 
+        ; Inicializacion de estados de maquinas de estado
         Movw #TareaLDTst_Est1,EstPres_LDTst
+        Movw #PantallaMUX_Est1,EstPres_PantallaMUX
         Movw #LeerPB_Est1,EstPres_LeerPB1
         Movw #Teclado_Est1,Est_Pres_TCL
         
+        ; Pantalla MUX
+        Movb #$01,Cont_Dig
+        Movb #90,Brillo
+        
+        ; Teclado
         Movb #$FF,Tecla
         Movb #$FF,Tecla_IN
         Movb #$00,Cont_TCL
@@ -244,6 +261,7 @@ Despachador_Tareas
 
         Jsr Decre_TablaTimers
         Jsr Tarea_Led_Testigo
+        Jsr Tarea_PantallaMUX
         ;Jsr Tarea_LeerPB
         ;Jsr Tarea_Teclado
         Bra Despachador_Tareas
@@ -361,31 +379,36 @@ Tarea_PantallaMUX
 
 PantallaMUX_Est1:
                 Tst Timer_Digito
-                Beq FIN_PantMUX_1
+                Bne FIN_PantMUX_1
+                Movb #tTimerDigito,Timer_Digito
                 Ldaa Cont_Dig
                 Cmpa #$01
                 Bne GoTo_Disp2
-                BClr PTP,$01
-                Movb #DSP1,PORTB
-                Bra Dec_Cont_Dig
+                BClr PTP,DIG1
+                Movb DSP1,PORTB
+                Bra Inc_Cont_Dig
 GoTo_Disp2      Cmpa #$02
                 Bne GoTo_Disp3
-                BClr PTP,$02
-                Movb #DSP2,PORTB
-                Bra Dec_Cont_Dig
+                BClr PTP,DIG2
+                Movb DSP2,PORTB
+                Bra Inc_Cont_Dig
 GoTo_Disp3      Cmpa #$03
                 Bne GoTo_Disp4
-                BClr PTP,$03
-                Movb #DSP3,PORTB
-                Bra Dec_Cont_Dig
-GoTo_Disp4      Cmpa #$03
-                Bne FIN_PantMUX_1
-                BClr PTP,$04
-                Movb #DSP4,PORTB
-Dec_Cont_Dig    Dec Cont_Dig
-FIN_PantMUX_1   Movb #MaxCountTicks,CounterTicks
+                BClr PTP,DIG3
+                Movb DSP3,PORTB
+                Bra Inc_Cont_Dig
+GoTo_Disp4      Cmpa #$04
+                Bne GoTo_Leds
+                BClr PTP,DIG4
+                Movb DSP4,PORTB
+Inc_Cont_Dig    Inc Cont_Dig
+                Bra Inc_Ticks
+GoTo_Leds       BSet PTJ,$02
+                Movb #LEDS,PORTB
+                Movb #$00,Cont_Dig
+Inc_Ticks       Movw #MaxCountTicks,CounterTicks
                 Movw #PantallaMUX_Est2,EstPres_PantallaMUX
-                Rts
+FIN_PantMUX_1   Rts
                 
 ;=========================== PANTALLA MUX ESTADO 2 =============================
 
