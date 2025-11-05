@@ -5,7 +5,7 @@
  ;******************************************************************************
  ;                 RELOCALIZACION DE VECTOR DE INTERRUPCION
  ;******************************************************************************
-                                Org $3E64
+                                Org $3E4A
                                 dw Maquina_Tiempos
 ;******************************************************************************
 ;                   DECLARACION DE LAS ESTRUCTURAS DE DATOS
@@ -13,10 +13,10 @@
 
 ;--- Aqui se colocan los valores de carga para los timers baseT  ----
 
-tTimer1mS:        EQU 50     ;Base de tiempo de 1 mS (0.5 ms x 2)
-tTimer10mS:       EQU 500    ;Base de tiempo de 10 mS (0.5 mS x 20)
-tTimer100mS:      EQU 5000    ;Base de tiempo de 100 mS (0.5 mS x 200)
-tTimer1S:         EQU 50000    ;Base de tiempo de 1 segundo (0.5 mS x 2000)
+tTimer1mS:        EQU 50     ;Base de tiempo de 1 mS (20 uS x 2)
+tTimer10mS:       EQU 500    ;Base de tiempo de 10 mS (20 uS x 20)
+tTimer100mS:      EQU 5000    ;Base de tiempo de 100 mS (20 uS x 200)
+tTimer1S:         EQU 50000    ;Base de tiempo de 1 segundo (20 uS x 2000)
 
 ;--- Aqui se colocan los valores de carga para los timers de la aplicacion  ----
 
@@ -122,10 +122,9 @@ Fin_Base1S:       dB $FF
         Movb #$0F,DDRP    ;bloquea los display de 7 Segmentos
         Movb #$0F,PTP
 
-        BSet TSCR1,$90    ; Habilitar timer con borrado automatico
-        Bset TSCR2,$04    ; Habilitar PR2
-        BSet TIOS,$20     ; Establecer IOS1 como salida
-        BSet TIE,$20      ; Habilitar interrupcion
+        Movw #30,MCCNT
+        Movb #$87,MCCTL   ; Habilitar interrupciones module count down con
+                          ; divisor 16
         
         Movb #$F0,DDRA
         BSet PUCR,$01
@@ -166,9 +165,9 @@ Despachador_Tareas
 
         Jsr Decre_TablaTimers
         Jsr Tarea_Led_Testigo
-        Jsr Tarea_LeerPB
-        Jsr Tarea_Teclado
-        Jsr Tarea_Leds
+        ;Jsr Tarea_LeerPB
+        ;Jsr Tarea_Teclado
+        ;Jsr Tarea_Leds
         Bra Despachador_Tareas
        
 ;******************************************************************************
@@ -440,9 +439,6 @@ Rt_Decre_Timers Rts
 ;******************************************************************************
 
 Maquina_Tiempos:
-               Ldd TCNT
-               Addd #30
-               Std TC5
                Ldx #Tabla_Timers_BaseT
                Jsr Decre_Timers_BaseT
                Rti
