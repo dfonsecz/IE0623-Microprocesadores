@@ -1,26 +1,26 @@
  ;******************************************************************************
- ;                              MAQUINA DE TIEMPOS
- ;                                     (RTI)
+ ;                          TAREA 5 - PANTALLAS LCD
  ;******************************************************************************
 #include registers.inc
  ;******************************************************************************
  ;                 RELOCALIZACION DE VECTOR DE INTERRUPCION
  ;******************************************************************************
-                                Org $3E70
+                                Org $3E64
                                 dw Maquina_Tiempos
 ;******************************************************************************
-;                       DECLARACION DE LAS ESTRUCTURAS DE DATOS
+;                   DECLARACION DE LAS ESTRUCTURAS DE DATOS
 ;******************************************************************************
 
 ;--- Aqui se colocan los valores de carga para los timers baseT  ----
 
-tTimer1mS:        EQU 2     ;Base de tiempo de 1 mS (0.5 ms x 2)
-tTimer10mS:       EQU 20    ;Base de tiempo de 10 mS (0.5 mS x 20)
-tTimer100mS:      EQU 200    ;Base de tiempo de 100 mS (0.5 mS x 200)
-tTimer1S:         EQU 2000    ;Base de tiempo de 1 segundo (0.5 mS x 2000)
+tTimer1mS:        EQU 50     ;Base de tiempo de 1 mS (0.5 ms x 2)
+tTimer10mS:       EQU 500    ;Base de tiempo de 10 mS (0.5 mS x 20)
+tTimer100mS:      EQU 5000    ;Base de tiempo de 100 mS (0.5 mS x 200)
+tTimer1S:         EQU 50000    ;Base de tiempo de 1 segundo (0.5 mS x 2000)
 
 ;--- Aqui se colocan los valores de carga para los timers de la aplicacion  ----
 
+tTimer2ms:        EQU 100
 tSupRebPB:        EQU 10     ;Tiempo de supresion de rebotes x 1 mS (PB)
 tSupRebTCL:       EQU 10     ;Tiempo de supresion de rebotes x 1 mS (Teclado)
 tShortP:          EQU 25     ;Tiempo minimo ShortPress x 10 mS
@@ -70,10 +70,12 @@ Teclas:           db $01,$02,$03
 ;===============================================================================
 ;                              TABLA DE TIMERS
 ;===============================================================================
-                  ORG $1040
+                  ORG $1500
 Tabla_Timers_BaseT:
 
-Timer1mS        ds 2       ;Timer 1 ms con base a tiempo de interrupcion
+Timer40uS:      ds 2
+Timer260uS:     ds 2
+Timer1mS:       ds 2       ;Timer 1 ms con base a tiempo de interrupcion
 Timer10mS:      ds 2       ;Timer para generar la base de tiempo 10 mS
 Timer100mS:     ds 2       ;Timer para generar la base de tiempo de 100 mS
 Timer1S:        ds 2       ;Timer para generar la base de tiempo de 1 Seg.
@@ -84,6 +86,8 @@ Tabla_Timers_Base1mS
 
 Timer_RebPB:    ds 1
 Timer_RebTCL:   ds 1
+Timer_Digito:   ds 1
+Timer2mS:       ds 1
 
 Fin_Base1mS:    dB $FF
 
@@ -114,12 +118,14 @@ Fin_Base1S:       dB $FF
         BSet DDRB,$FF     ;Habilitacion de los LEDs
         BSet DDRJ,$02     ;como comprobacion del timer de 1 segundo
         BClr PTJ,$02      ;haciendo toogle
-        
+
         Movb #$0F,DDRP    ;bloquea los display de 7 Segmentos
         Movb #$0F,PTP
-        
-        Movb #$13,RTICTL   ;Se configura RTI con un periodo de 0.5 mS
-        Bset CRGINT,$80
+
+        BSet TSCR1,$90    ; Habilitar timer con borrado automatico
+        Bset TSCR2,$04    ; Habilitar PR2
+        BSet TIOS,$20     ; Establecer IOS1 como salida
+        BSet TIE,$20      ; Habilitar interrupcion
         
         Movb #$F0,DDRA
         BSet PUCR,$01
@@ -430,13 +436,15 @@ Inc_X_Index     Inx
 Rt_Decre_Timers Rts
 
 ;******************************************************************************
-;                       SUBRUTINA DE ATENCION A RTI
+;                    SUBRUTINA DE ATENCION OUTPUT COMPARE
 ;******************************************************************************
 
 Maquina_Tiempos:
+               Ldd TCNT
+               Addd #30
+               Std TC5
                Ldx #Tabla_Timers_BaseT
                Jsr Decre_Timers_BaseT
-               BSet CRGFLG,$80
                Rti
                
 Decre_Timers_BaseT:
