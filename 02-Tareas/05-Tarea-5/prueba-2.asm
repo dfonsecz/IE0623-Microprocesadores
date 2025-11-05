@@ -101,8 +101,8 @@ Fin_Base100mS:  dB $FF
 
 Tabla_Timers_Base1S
 
-Timer_LP:               ds 1
 Timer_LED_Testigo:      ds 1
+Timer_LP:               ds 1
 
 Fin_Base1S:       dB $FF
 
@@ -119,7 +119,7 @@ Fin_Base1S:       dB $FF
         Movb #$0F,PTP
 
         BClr MCCTL,#$04
-        Movb #$C3,MCCTL
+        Movb #$E3,MCCTL
         BSet MCCTL,#$04
         Movw #30,MCCNT
 
@@ -443,7 +443,7 @@ Maquina_Tiempos:
 
 Decre_Timers_BaseT:
                Ldy 2,X+
-               Cpy #0
+               ;Cpy #0
                Beq Decre_Timers_BaseT
                Cpy #$FFFF
                Beq Rt_Decre_BaseT

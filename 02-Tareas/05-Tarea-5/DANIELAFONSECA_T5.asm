@@ -393,12 +393,12 @@ PantallaMUX_Est1:
                 Movb #DSP1,PORTB
                 Bra Dec_Cont_Dig
 GoTo_Disp2      Cmpa #$02
-		Bne GoTo_Disp3
+                Bne GoTo_Disp3
                 BClr PTP,$02
                 Movb #DSP2,PORTB
                 Bra Dec_Cont_Dig
 GoTo_Disp3      Cmpa #$03
-		Bne GoTo_Disp4
+                Bne GoTo_Disp4
                 BClr PTP,$03
                 Movb #DSP3,PORTB
                 Bra Dec_Cont_Dig
@@ -617,7 +617,7 @@ Inc_X_Index     Inx
 Rt_Decre_Timers Rts
 
 ;******************************************************************************
-;                   SUBRUTINA DE ATENCION MODULE COUNT DOWN
+;                       SUBRUTINA DE ATENCION A RTI
 ;******************************************************************************
 
 Maquina_Tiempos:
@@ -625,7 +625,7 @@ Maquina_Tiempos:
                Jsr Decre_Timers_BaseT
                BSet MCFLG,$80
                Rti
-               
+
 Decre_Timers_BaseT:
                Ldy 2,X+
                Cpy #0
