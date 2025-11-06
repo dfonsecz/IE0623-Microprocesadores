@@ -326,20 +326,21 @@ BIN_BCD_MUXP
                 Clr BCD
 BIN_BCD_Loop    Lsla                              ; Pasar bits a BCD por medio
                 Ror BCD                           ; del carry
-                Ldab BCD
-                Andb #$0F                         ; Obtener nibble bajo de BCD
-                Cmpb #$05
+                Psha
+		Ldaa BCD
+                Anda #$0F                         ; Obtener nibble bajo de BCD
+                Cmpa #$05
                 Bcs Nibble_Alto
-                Addb #$03
+                Adda #$03
 Nibble_Alto     Psha
-                Tfr B,A
-		Ldab BCD
-                Andb #$F0
-                Cmpb #$50
+		Ldaa BCD
+                Anda #$F0
+                Cmpa #$50
                 Bcs Dec_Cont_BCD
-                Addb #$30
-Dec_Cont_BCD    Aba
-		Stab BCD
+                Adda #$30
+Dec_Cont_BCD    Pulb
+		Aba
+		Staa BCD
 		Pula
 		Dec Cont_BCD
                 Tst Cont_BCD
