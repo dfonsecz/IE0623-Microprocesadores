@@ -300,15 +300,15 @@ Init_LCD_Loop   Movb 1,X+,CharLCD
                 Bne Call_SendLCD_2
                 Movb #Clear_Display,CharLCD
 Call_SendLCD_1  Jsr SendLCD
-                BrSet Banderas_2,FinSendLCD,Call_SendLCD_1
+                BrClr Banderas_2,FinSendLCD,Call_SendLCD_1
                 Bra FIN_Init_LCD
 Call_SendLCD_2  Jsr SendLCD
-                BrSet Banderas_2,FinSendLCD,Call_SendLCD_2
+                BrClr Banderas_2,FinSendLCD,Call_SendLCD_2
                 BClr Banderas_2,FinSendLCD
                 Bra Init_LCD_Loop
-FIN_Init_LCD    Movb #tTimer2mS,Timer2mS
-                Jsr Decre_TablaTimers
-Timer2mS_Reach0 Tst Timer2mS
+FIN_Init_LCD    Movb tTimer2mS,Timer2mS
+Timer2mS_Reach0 Jsr Decre_TablaTimers
+		Tst Timer2mS
                 Bne Timer2mS_Reach0
                 Rts
         
@@ -617,7 +617,7 @@ TareaSendLCD_Est1:
                 Lsra
                 Lsra
                 Staa PORTK
-                BrSet Banderas_2,RS,Clear_RS
+                BrClr Banderas_2,RS,Clear_RS
                 BSet PORTK,RS
                 Bra Enable_LCD
 Clear_RS        BClr PORTK,RS
