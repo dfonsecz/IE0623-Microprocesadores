@@ -56,10 +56,10 @@ Num_Array:        ds 5       ; Array donde guardar valores ingresados por el
                           ORG $1020
 EstPres_PantallaMUX:    ds 2 ; Variable para guardar estado de tarea de pantalla
                              ; multiplexada
-Dsp1:             db #$3F
-Dsp2:             db #$06
-Dsp3:             db #$5B
-Dsp4:             db #$4F
+Dsp1:             ds 1
+Dsp2:             ds 1
+Dsp3:             ds 1
+Dsp4:             ds 1
 LEDS:             ds 1
 Cont_Dig:         ds 1
 Brillo:           ds 1
@@ -67,8 +67,8 @@ BIN1:             ds 1
 BIN2:             ds 1
 BCD:              ds 1
 Cont_BCD:         ds 1
-BCD1:             ds 1
-BCD2:             ds 1
+BCD1:             db $34
+BCD2:             db $12
 
 ; Valores
 MaxCountTicks     EQU 100
@@ -261,10 +261,63 @@ Despachador_Tareas
 
         Jsr Decre_TablaTimers
         Jsr Tarea_Led_Testigo
+        Jsr Tarea_Conversion
         Jsr Tarea_PantallaMUX
         ;Jsr Tarea_LeerPB
         ;Jsr Tarea_Teclado
         Bra Despachador_Tareas
+        
+;******************************************************************************
+;                               TAREA CONVERSIONES
+;******************************************************************************
+
+Tarea_Conversion:
+                ;Ldaa BIN1
+                ;Jsr BIN_BCD_MUXCP
+                ;Movb BCD,BCD1
+                ;Ldaa BIN2
+                ;Jsr BIN_BCD_MUXCP
+                ;Movb BCD,BCD2
+                Jsr BCD_7Seg
+FIN_TareaConv:  Rts
+
+;=============================== BCD 7 SEGMENTOS ===============================
+;
+; Descripcion: Esta subrutina toma los valores de BCD1 y BCD2, y busca en la
+; tabla de patrones de segmentos el segmento correspondiente al digito de cada
+; nibble. Luego, guarda los resultados en las variables Dsp1, Dsp2, Dsp3 y Dsp4
+; de la siguiente forma:
+;
+;       BCD2 -> Dsp1:Dsp2
+;       BCD1 -> Dsp3:Dsp4
+
+BCD_7Seg:
+                Ldx #Segment
+                Ldaa BCD2
+                Anda #$F0                         ; Obtener nibble alto de BCD2
+                Lsra                              ; y desplazar a la parte baja
+                Lsra
+                Lsra
+                Lsra
+                Ldab A,X                          ; Cargar patron de segmento
+                Stab Dsp1                         ; Guardar en DISP1
+                Ldaa BCD2
+                Anda #$0F                         ; Obtener nibble bajo de BCD2
+                Ldab A,X                          ; Cargar patron de segmento
+                Stab Dsp2                         ; Guardar en DISP2
+                Ldaa BCD1
+                Anda #$F0                         ; Obtener nibble alto de BCD1
+                Lsra                              ; y desplazar a la parte baja
+                Lsra
+                Lsra
+                Lsra
+                Ldab A,X                          ; Cargar patron de segmento
+                Stab Dsp3                         ; Guardar en DISP3
+                Ldaa BCD1
+                Anda #$0F                         ; Obtener nibble bajo de BCD1
+                Ldab A,X                          ; Cargar patron de segmento
+                Stab Dsp4                         ; Guardar en DISP4
+FIN_BCD7_Seg    Rts
        
 ;******************************************************************************
 ;                               TAREA LED TESTIGO
