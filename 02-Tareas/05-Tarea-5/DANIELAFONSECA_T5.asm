@@ -14,10 +14,10 @@
 
 ;--- Aqui se colocan los valores de carga para los timers baseT  ----
 
-tTimer1mS:        EQU 50     ;Base de tiempo de 1 mS (20 uS x 1)
-tTimer10mS:       EQU 500    ;Base de tiempo de 10 mS (20 uS x 10)
-tTimer100mS:      EQU 5000    ;Base de tiempo de 100 mS (20 uS x 100)
-tTimer1S:         EQU 50000    ;Base de tiempo de 1 segundo (20 uS x 1000)
+tTimer1mS:        EQU 50     ;Base de tiempo de 1 mS (20uS x 50)
+tTimer10mS:       EQU 500    ;Base de tiempo de 10 mS (20uS x 500)
+tTimer100mS:      EQU 5000   ;Base de tiempo de 100 mS (20uS x 5000)
+tTimer1S:         EQU 50000  ;Base de tiempo de 1 segundo (20uS x 50000)
 
 ;--- Aqui se colocan los valores de carga para los timers de la aplicacion  ----
 
@@ -68,6 +68,13 @@ BCD:              ds 1
 Cont_BCD:         ds 1
 BCD1:             ds 1
 BCD2:             ds 1
+
+; Valores
+MaxCountTicks     EQU 5
+DIG1              EQU $01
+DIG2              EQU $02
+DIG3              EQU $04
+DIG4              EQU $08
 
 ;================================== TAREA LCD ==================================
 
@@ -147,6 +154,7 @@ Timer1mS:       ds 2       ;Timer 1 ms con base a tiempo de interrupcion
 Timer10mS:      ds 2       ;Timer para generar la base de tiempo 10 mS
 Timer100mS:     ds 2       ;Timer para generar la base de tiempo de 100 mS
 Timer1S:        ds 2       ;Timer para generar la base de tiempo de 1 Seg.
+CounterTicks:   ds 2
 
 Fin_BaseT       dW $FFFF
 
@@ -190,11 +198,10 @@ Fin_Base1S:      dB $FF
         BSet DDRP,$7F
         BClr PTP,$0F
         
-        
-        BClr MCCTL,#$04    ; Borrar enable
-        Movb #$C3,MCCTL   ; Habilitar interrupciones module count down con
+        BClr MCCTL,#$04   ; Borrar enable
+        Movb #$E3,MCCTL   ; Habilitar interrupciones module count down con
                           ; divisor 16
-        BSet MCCTL,#$04    ; Poner el enable
+        BSet MCCTL,#$04   ; Poner el enable
         Movw #30,MCCNT    ; Cargar valor inicial de contador
         
         Movb #$F0,DDRA
@@ -235,10 +242,10 @@ Fin_Base1S:      dB $FF
 Despachador_Tareas
 
         Jsr Decre_TablaTimers
-        ;Jsr Tarea_Led_Testigo
+        Jsr Tarea_Led_Testigo
         ;Jsr Tarea_LeerPB
         ;Jsr Tarea_Teclado
-        ;Jsr Tarea_Leds
+        Jsr Tarea_Leds
         Bra Despachador_Tareas
        
 ;******************************************************************************
@@ -246,7 +253,7 @@ Despachador_Tareas
 ;******************************************************************************
 
 Tarea_Led_Testigo
-                Ldx #TareaLDTst_Est1
+                Ldx EstPres_LDTst
                 Jsr 0,X
 FinLedTest      Rts
 
@@ -407,7 +414,7 @@ GoTo_Disp4      Cmpa #$03
                 BClr PTP,$04
                 Movb #DSP4,PORTB
 Dec_Cont_Dig    Dec Cont_Dig
-FIN_PantMUX_1   Movb MaxCounterTicks,CounterTicks
+FIN_PantMUX_1   Movb #MaxCountTicks,CounterTicks
                 Movw #PantallaMUX_Est2,EstPres_PantallaMUX
                 Rts
                 
@@ -419,7 +426,7 @@ PantallaMUX_Est2:
                 Bne FIN_PantMUX_2
                 BSet PTP,$0F
                 BSet PTJ,$02
-                Movw #PantallaMUX_Est3,EstPres_PantallaMUX
+                ;Movw #PantallaMUX_Est3,EstPres_PantallaMUX
 FIN_PantMUX_2   Rts
 
 ;******************************************************************************
@@ -434,8 +441,8 @@ SendLCD:
 SendLCD_Est1:
                 Ldaa CharLCD
                 Anda $F0
-                Lsr
-                Lsr
+                Lsr CharLCD
+                Lsr CharLCD
                 Staa PORTK
 
 ;============================= SEND LCD ESTADO 2 ===============================
