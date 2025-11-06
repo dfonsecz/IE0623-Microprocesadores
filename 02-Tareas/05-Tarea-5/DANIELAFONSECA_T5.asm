@@ -614,8 +614,8 @@ SendLCD:
 TareaSendLCD_Est1:
                 Ldaa CharLCD
                 Anda #$F0
-                Lsr CharLCD
-                Lsr CharLCD
+                Lsra
+                Lsra
                 Staa PORTK
                 BrSet Banderas_2,RS,Clear_RS
                 BSet PORTK,RS
@@ -629,14 +629,13 @@ FIN_SendLCD_1   Rts
 ;============================= SEND LCD ESTADO 2 ===============================
 
 TareaSendLCD_Est2:
-                Ldaa Timer260uS
-                Tsta
+                Ldd Timer260uS
                 Bne FIN_SendLCD_2
                 BClr PORTK,$02
                 Ldaa CharLCD
                 Anda #$0F
-                Lsra
-                Lsra
+                Lsla
+                Lsla
                 BrSet Banderas_2,RS,Clear_RS_2
                 BSet PORTK,RS
                 Bra Load_Timer
@@ -648,7 +647,7 @@ FIN_SendLCD_2   Rts
 ;============================= SEND LCD ESTADO 3 ===============================
 
 TareaSendLCD_Est3:
-                Tst Timer260uS
+                Ldd Timer260uS
                 Bne FIN_SendLCD_3
                 BClr PORTK,$02
                 Movw #tTimer40uS,Timer40uS
@@ -658,7 +657,7 @@ FIN_SendLCD_3   Rts
 ;============================= SEND LCD ESTADO 4 ===============================
 
 TareaSendLCD_Est4:
-                Tst Timer40uS
+                Ldd Timer40uS
                 Bne FIN_SendLCD_4
                 BSet Banderas_2,FinSendLCD
                 Movw #TareaSendLCD_Est1,EstPres_SendLCD
