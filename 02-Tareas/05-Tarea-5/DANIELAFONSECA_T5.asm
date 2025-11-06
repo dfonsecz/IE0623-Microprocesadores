@@ -28,7 +28,7 @@ tShortP:          EQU 25     ;Tiempo minimo ShortPress x 10 mS
 tLongP:           EQU 3      ;Tiempo minimo LongPress en segundos
 tTimerLDTst:      EQU 5      ;Tiempo de parpadeo de LED testigo x 100 mS
 tTimerDigito:     EQU 2
-tSegundosTCM:     EQU 15
+tSegundosTCM:     EQU 59
 tMinutosTCM:      EQU 1
 
 PortPB:           EQU PTIH   ;Se define el puerto donde se ubica el PB
@@ -420,7 +420,7 @@ Tarea_TCM
                 
 ;============================= TAREA TCM ESTADO 1 ==============================
 
-TareaTCM_Est1   BrClr Banderas_1,ShortP1,FIN_TareaTCM_1
+TareaTCM_Est1   BrSet Banderas_1,ShortP1,FIN_TareaTCM_1
                 Movb #tMinutosTCM,MinutosTCM
                 Movb #tSegundosTCM,SegundosTCM
                 Movw #MSG1_P1,Msg_L1
