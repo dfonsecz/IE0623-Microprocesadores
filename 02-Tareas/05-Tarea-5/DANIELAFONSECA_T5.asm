@@ -131,7 +131,7 @@ EstPres_LDTst     ds 1
 Segment:
 
 ; Codigos de Teclas validas
-                  ORG $1020
+                  ORG $1110
 Teclas:           db $01,$02,$03
                   db $04,$05,$06
                   db $07,$08,$09
