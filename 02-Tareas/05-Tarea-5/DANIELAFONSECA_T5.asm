@@ -237,7 +237,7 @@ Fin_Base1S:      dB $FF
         
         ; Pantalla MUX
         Movb #$01,Cont_Dig
-        Movb #90,Brillo
+        Movb #40,Brillo
         
         ; Teclado
         Movb #$FF,Tecla
@@ -371,7 +371,7 @@ FIN_Est4        Rts
 ;******************************************************************************
 
 Tarea_PantallaMUX
-                Ldx #PantallaMUX_Est1
+                Ldx EstPres_PantallaMUX
                 Jsr 0,X
                 Rts
                 
@@ -401,11 +401,11 @@ GoTo_Disp4      Cmpa #$04
                 Bne GoTo_Leds
                 BClr PTP,DIG4
                 Movb DSP4,PORTB
-Inc_Cont_Dig    Inc Cont_Dig
-                Bra Inc_Ticks
+                Bra Inc_Cont_Dig
 GoTo_Leds       BSet PTJ,$02
-                Movb #LEDS,PORTB
+                Movb LEDS,PORTB
                 Movb #$00,Cont_Dig
+Inc_Cont_Dig    Inc Cont_Dig
 Inc_Ticks       Movw #MaxCountTicks,CounterTicks
                 Movw #PantallaMUX_Est2,EstPres_PantallaMUX
 FIN_PantMUX_1   Rts
@@ -413,9 +413,9 @@ FIN_PantMUX_1   Rts
 ;=========================== PANTALLA MUX ESTADO 2 =============================
 
 PantallaMUX_Est2:
-                Ldaa CounterTicks
-                Cmpa Brillo
-                Bne FIN_PantMUX_2
+                Ldd CounterTicks
+                Cmpb Brillo
+                Bhi FIN_PantMUX_2
                 BSet PTP,$0F
                 BSet PTJ,$02
                 Movw #PantallaMUX_Est1,EstPres_PantallaMUX
