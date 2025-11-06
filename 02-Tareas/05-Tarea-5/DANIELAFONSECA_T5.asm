@@ -284,7 +284,8 @@ Fin_Base1S:      dB $FF
         Clr Banderas_1
         
 	Jsr Init_LCD
-        
+	Bra Despachador_Tareas
+
 ;******************************************************************************
 ;                              INICIALICION LCD
 ;******************************************************************************
@@ -605,8 +606,8 @@ FIN_PantMUX_2   Rts
 ;******************************************************************************
 
 SendLCD:
-                Ldx EstPres_SendLCD
-                Jsr 0,X
+                Ldy EstPres_SendLCD
+                Jsr 0,Y
                 Rts
                 
 ;============================= SEND LCD ESTADO 1 ===============================
@@ -636,11 +637,12 @@ TareaSendLCD_Est2:
                 Anda #$0F
                 Lsla
                 Lsla
-                BrSet Banderas_2,RS,Clear_RS_2
+                BrClr Banderas_2,RS,Clear_RS_2
                 BSet PORTK,RS
                 Bra Load_Timer
 Clear_RS_2      BClr PORTK,RS
-Load_Timer      Movw #tTimer260uS,Timer260uS
+Load_Timer      BSet PORTK,$02
+		Movw #tTimer260uS,Timer260uS
                 Movw #TareaSendLCD_Est3,EstPres_SendLCD
 FIN_SendLCD_2   Rts
 
