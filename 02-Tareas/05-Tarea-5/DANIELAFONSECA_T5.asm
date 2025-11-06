@@ -262,8 +262,6 @@ Fin_Base1S:      dB $FF
         ; Inicializacion de Pantalla LCD (timers)
         Movw #tTimer260uS,Timer260uS
 	Movw #tTimer40uS,Timer40uS
-	
-	Jsr Init_LCD
         
         ; Pantalla MUX
         Movb #$01,Cont_Dig
@@ -280,10 +278,12 @@ Fin_Base1S:      dB $FF
         
         Movb #$00,Patron
         Movb #$FF,Funcion
-        
+
         Lds #$3BFF
         Cli
         Clr Banderas_1
+        
+	Jsr Init_LCD
         
 ;******************************************************************************
 ;                              INICIALICION LCD
