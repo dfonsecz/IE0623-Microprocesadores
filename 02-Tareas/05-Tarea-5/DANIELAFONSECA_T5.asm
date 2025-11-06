@@ -306,7 +306,7 @@ Call_SendLCD_2  Jsr SendLCD
                 BrSet Banderas_2,FinSendLCD,Call_SendLCD_2
                 BClr Banderas_2,FinSendLCD
                 Bra Init_LCD_Loop
-FIN_Init_LCD    Movw #tTimer2mS,Timer2mS
+FIN_Init_LCD    Movb #tTimer2mS,Timer2mS
                 Jsr Decre_TablaTimers
 Timer2mS_Reach0 Tst Timer2mS
                 Bne Timer2mS_Reach0
