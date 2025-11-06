@@ -21,18 +21,20 @@ tTimer1S:         EQU 50000  ;Base de tiempo de 1 segundo (20uS x 50000)
 
 ;--- Aqui se colocan los valores de carga para los timers de la aplicacion  ----
 
-tTimer2ms:        EQU 100
-tSupRebPB:        EQU 10     ;Tiempo de supresion de rebotes x 1 mS (PB)
-tSupRebTCL:       EQU 10     ;Tiempo de supresion de rebotes x 1 mS (Teclado)
-tShortP:          EQU 25     ;Tiempo minimo ShortPress x 10 mS
-tLongP:           EQU 3      ;Tiempo minimo LongPress en segundos
-tTimerLDTst:      EQU 5      ;Tiempo de parpadeo de LED testigo x 100 mS
+tTimer40uS:       EQU 2      ; Tiempo de timer de 40 uS (20uS x 2)
+tTimer260uS:      EQU 13     ; Tiempo de timer de 260 uS (20uS x 13)
+tTimer2ms:        EQU 100    ; Tiempo de timer de 2 mS (20uS x 100)
+tSupRebPB:        EQU 10     ; Tiempo de supresion de rebotes x 1 mS (PB)
+tSupRebTCL:       EQU 10     ; Tiempo de supresion de rebotes x 1 mS (Teclado)
+tShortP:          EQU 25     ; Tiempo minimo ShortPress x 10 mS
+tLongP:           EQU 3      ; Tiempo minimo LongPress en segundos
+tTimerLDTst:      EQU 5      ; Tiempo de parpadeo de LED testigo x 100 mS
 tTimerDigito:     EQU 2
 tSegundosTCM:     EQU 59
 tMinutosTCM:      EQU 1
 
-PortPB:           EQU PTIH   ;Se define el puerto donde se ubica el PB
-MaskPB:           EQU $01    ;Se define el bit del PB en el puerto
+PortPB:           EQU PTIH   ; Se define el puerto donde se ubica el PB
+MaskPB:           EQU $01    ; Se define el bit del PB en el puerto
 
 ;=============================== TAREA TECLADO =================================
 
@@ -82,13 +84,20 @@ DIG4              EQU $08
 ;================================== TAREA LCD ==================================
 
                   ORG $102F
-IniDsp:           ds 5
+IniDsp:           db $28
+                  db $06
+                  db $0C
+                  db $FF
 Punt_LCD:         ds 2
 CharLCD:          ds 1
 Msg_L1:           ds 2
 Msg_L2:           ds 2
 EstPres_SendLCD:  ds 2       ; Variable para guardar estado de Tarea Send LCD
 EstPres_TareaLCD: ds 2       ; Variable para guardar estado de Tarea LCD
+
+; Comandos
+Clear_Display:    EQU $01
+
 
 ;================================ TAREA LEER PB1 ===============================
 
@@ -170,6 +179,8 @@ Timer1mS:       ds 2       ;Timer 1 ms con base a tiempo de interrupcion
 Timer10mS:      ds 2       ;Timer para generar la base de tiempo 10 mS
 Timer100mS:     ds 2       ;Timer para generar la base de tiempo de 100 mS
 Timer1S:        ds 2       ;Timer para generar la base de tiempo de 1 Seg.
+Timer40uS:      ds 2
+Timer260uS:     ds 2
 CounterTicks:   ds 2
 
 Fin_BaseT       dW $FFFF
@@ -245,10 +256,18 @@ Fin_Base1S:      dB $FF
         Movw #LeerPB_Est1,EstPres_LeerPB1
         Movw #Teclado_Est1,Est_Pres_TCL
         Movw #TareaTCM_Est1,EstPres_TCM
+        Movw #TareaLCD_Est1,EstPres_TareaLCD
+        Movw #TareaSendLCD_Est1,EstPres_SendLCD
+        
+        ; Inicializacion de Pantalla LCD (timers)
+        Movw #tTimer260uS,Timer260uS
+	Movw #tTimer40uS,Timer40uS
+	
+	Jsr Init_LCD
         
         ; Pantalla MUX
         Movb #$01,Cont_Dig
-        Movb #40,Brillo
+        Movb #30,Brillo
         
         ; Pantalla LCD
         Clr Banderas_1
@@ -265,7 +284,33 @@ Fin_Base1S:      dB $FF
         Lds #$3BFF
         Cli
         Clr Banderas_1
+        
+;******************************************************************************
+;                              INICIALICION LCD
+;******************************************************************************
 
+Init_LCD        ; Inicializacion de Pantalla LCD (otros)
+        	Movb #$3F,DDRK
+        	Movw #IniDsp,Punt_LCD
+        	Clr Banderas_2    ; Apaga las banderas RS, SecondLine, y LCD_OK
+		Ldx Punt_LCD
+Init_LCD_Loop   Movb 1,X+,CharLCD
+                Ldaa CharLCD
+                Cmpa #$FF
+                Bne Call_SendLCD_2
+                Movb #Clear_Display,CharLCD
+Call_SendLCD_1  Jsr SendLCD
+                BrSet Banderas_2,FinSendLCD,Call_SendLCD_1
+                Bra FIN_Init_LCD
+Call_SendLCD_2  Jsr SendLCD
+                BrSet Banderas_2,FinSendLCD,Call_SendLCD_2
+                BClr Banderas_2,FinSendLCD
+                Bra Init_LCD_Loop
+FIN_Init_LCD    Movw #tTimer2mS,Timer2mS
+                Jsr Decre_TablaTimers
+Timer2mS_Reach0 Tst Timer2mS
+                Bne Timer2mS_Reach0
+                Rts
         
 ;===============================================================================
 ;                          DESPACHADOR DE TAREAS
@@ -560,29 +605,87 @@ FIN_PantMUX_2   Rts
 ;******************************************************************************
 
 SendLCD:
-                Ldx #SendLCD_Est1
+                Ldx EstPres_SendLCD
+                Jsr 0,X
+                Rts
                 
 ;============================= SEND LCD ESTADO 1 ===============================
 
-SendLCD_Est1:
+TareaSendLCD_Est1:
                 Ldaa CharLCD
-                Anda $F0
+                Anda #$F0
                 Lsr CharLCD
                 Lsr CharLCD
                 Staa PORTK
+                BrSet Banderas_2,RS,Clear_RS
+                BSet PORTK,RS
+                Bra Enable_LCD
+Clear_RS        BClr PORTK,RS
+Enable_LCD      BSet PORTK,$02
+                Movw #tTimer260uS,Timer260uS
+                Movw #TareaSendLCD_Est2,EstPres_SendLCD
+FIN_SendLCD_1   Rts
 
 ;============================= SEND LCD ESTADO 2 ===============================
 
-SendLCD_Est2:
+TareaSendLCD_Est2:
+                Ldaa Timer260uS
+                Tsta
+                Bne FIN_SendLCD_2
+                BClr PORTK,$02
+                Ldaa CharLCD
+                Anda #$0F
+                Lsra
+                Lsra
+                BrSet Banderas_2,RS,Clear_RS_2
+                BSet PORTK,RS
+                Bra Load_Timer
+Clear_RS_2      BClr PORTK,RS
+Load_Timer      Movw #tTimer260uS,Timer260uS
+                Movw #TareaSendLCD_Est3,EstPres_SendLCD
+FIN_SendLCD_2   Rts
 
 ;============================= SEND LCD ESTADO 3 ===============================
 
-SendLCD_Est3:
+TareaSendLCD_Est3:
+                Tst Timer260uS
+                Bne FIN_SendLCD_3
+                BClr PORTK,$02
+                Movw #tTimer40uS,Timer40uS
+                Movw #TareaSendLCD_Est4,EstPres_SendLCD
+FIN_SendLCD_3   Rts
 
 ;============================= SEND LCD ESTADO 4 ===============================
 
-SendLCD_Est4:
-                
+TareaSendLCD_Est4:
+                Tst Timer40uS
+                Bne FIN_SendLCD_4
+                BSet Banderas_2,FinSendLCD
+                Movw #TareaSendLCD_Est1,EstPres_SendLCD
+FIN_SendLCD_4   Rts
+
+;******************************************************************************
+;                                  TAREA LCD
+;******************************************************************************
+
+Tarea_LCD:
+                Ldx EstPres_TareaLCD
+
+;============================= TAREA LCD ESTADO 1 ===============================
+
+TareaLCD_Est1:
+
+;============================= TAREA LCD ESTADO 2 ===============================
+
+TareaLCD_Est2:
+
+;============================= TAREA LCD ESTADO 3 ===============================
+
+TareaLCD_Est3:
+
+;============================= TAREA LCD ESTADO 4 ===============================
+
+TareaLCD_Est4:
 
 ;******************************************************************************
 ;                               TAREA TECLADO
