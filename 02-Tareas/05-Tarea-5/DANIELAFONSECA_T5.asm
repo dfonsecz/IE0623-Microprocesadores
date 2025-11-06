@@ -28,6 +28,8 @@ tShortP:          EQU 25     ;Tiempo minimo ShortPress x 10 mS
 tLongP:           EQU 3      ;Tiempo minimo LongPress en segundos
 tTimerLDTst:      EQU 5      ;Tiempo de parpadeo de LED testigo x 100 mS
 tTimerDigito:     EQU 2
+tSegundosTCM:     EQU 15
+tMinutosTCM:      EQU 1
 
 PortPB:           EQU PTIH   ;Se define el puerto donde se ubica el PB
 MaskPB:           EQU $01    ;Se define el bit del PB en el puerto
@@ -63,8 +65,8 @@ Dsp4:             ds 1
 LEDS:             ds 1
 Cont_Dig:         ds 1
 Brillo:           ds 1
-BIN1:             db #00
-BIN2:             db #00
+BIN1:             ds 1
+BIN2:             ds 1
 BCD:              ds 1
 Cont_BCD:         ds 1
 BCD1:             ds 1
@@ -149,10 +151,14 @@ Teclas:           db $01,$02,$03
                   
 ;================================== MENSAJES ===================================
 
-MSG1_P1:
-MSG1_P2:
-MSG2_P1:
-MSG2_P2:
+MSG1_P1:          fcc "   ESCUELA DE   "
+                  db $FF
+MSG1_P2:          fcc " ING. ELECTRICA "
+                  db $FF
+MSG2_P1:          fcc " uPROCESADORES  "
+                  db $FF
+MSG2_P2:          fcc "    TAREA #5    "
+                  db $FF
                                 
 ;===============================================================================
 ;                              TABLA DE TIMERS
@@ -193,6 +199,7 @@ Fin_Base100mS:  dB $FF
 Tabla_Timers_Base1S
 
 Timer_LP:        ds 1
+SegundosTCM:     ds 1
 
 Fin_Base1S:      dB $FF
 
@@ -228,16 +235,23 @@ Fin_Base1S:      dB $FF
 
         Movb #tTimerLDTst,TimerLDTst  ;inicia timer parpadeo led testigo
         Movb #0,Timer_LP
+        
+        Movb SegundosTCM,BIN1
+	Movb MinutosTCM,BIN2
 
         ; Inicializacion de estados de maquinas de estado
         Movw #TareaLDTst_Est1,EstPres_LDTst
         Movw #PantallaMUX_Est1,EstPres_PantallaMUX
         Movw #LeerPB_Est1,EstPres_LeerPB1
         Movw #Teclado_Est1,Est_Pres_TCL
+        Movw #TareaTCM_Est1,EstPres_TCM
         
         ; Pantalla MUX
         Movb #$01,Cont_Dig
         Movb #40,Brillo
+        
+        ; Pantalla LCD
+        Clr Banderas_1
         
         ; Teclado
         Movb #$FF,Tecla
@@ -263,6 +277,7 @@ Despachador_Tareas
         Jsr Tarea_Led_Testigo
         Jsr Tarea_Conversion
         Jsr Tarea_PantallaMUX
+        Jsr Tarea_TCM
         ;Jsr Tarea_LeerPB
         ;Jsr Tarea_Teclado
         Bra Despachador_Tareas
@@ -393,6 +408,42 @@ TareaLDTst_Est3
                 Movw #TareaLDTst_Est1,EstPres_LDTst
                 Movb #tTimerLDTst,TimerLDTst
 FIN_LDTst_3     Rts
+
+;******************************************************************************
+;                                 TAREA TCM
+;******************************************************************************
+
+Tarea_TCM
+                Ldx EstPres_TCM
+                Jsr 0,X
+                Rts
+                
+;============================= TAREA TCM ESTADO 1 ==============================
+
+TareaTCM_Est1   BrClr Banderas_1,ShortP1,FIN_TareaTCM_1
+                Movb #tMinutosTCM,MinutosTCM
+                Movb #tSegundosTCM,SegundosTCM
+                Movw #MSG1_P1,Msg_L1
+                Movw #MSG1_P2,Msg_L2
+                Movw #TareaTCM_Est2,EstPres_TCM
+FIN_TareaTCM_1  Rts
+
+;============================= TAREA TCM ESTADO 2 ==============================
+
+TareaTCM_Est2   Movb SegundosTCM,BIN1
+                Movb MinutosTCM,BIN2
+                Tst SegundosTCM
+                Bne FIN_TareaTCM_2
+                Tst MinutosTCM
+                Bne Dec_Minutos
+                Movb tSegundosTCM,BIN1
+                Movb tMinutosTCM,BIN2
+                Movw #MSG1_P1,Msg_L1
+                Movw #MSG1_P2,Msg_L2
+                Movw #TareaTCM_Est1,EstPres_TCM
+Dec_Minutos     Dec MinutosTCM
+                Movb #60,SegundosTCM
+FIN_TareaTCM_2  Rts
 
 ;******************************************************************************
 ;                               TAREA LEER PB
