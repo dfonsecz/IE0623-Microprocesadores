@@ -63,12 +63,12 @@ Dsp4:             ds 1
 LEDS:             ds 1
 Cont_Dig:         ds 1
 Brillo:           ds 1
-BIN1:             ds 1
-BIN2:             ds 1
+BIN1:             db #$11
+BIN2:             db #$11
 BCD:              ds 1
 Cont_BCD:         ds 1
-BCD1:             db $34
-BCD2:             db $12
+BCD1:             ds 1
+BCD2:             ds 1
 
 ; Valores
 MaxCountTicks     EQU 100
@@ -272,12 +272,12 @@ Despachador_Tareas
 ;******************************************************************************
 
 Tarea_Conversion:
-                ;Ldaa BIN1
-                ;Jsr BIN_BCD_MUXCP
-                ;Movb BCD,BCD1
-                ;Ldaa BIN2
-                ;Jsr BIN_BCD_MUXCP
-                ;Movb BCD,BCD2
+                Ldaa BIN1
+                Jsr BIN_BCD_MUXP
+                Movb BCD,BCD1
+                Ldaa BIN2
+                Jsr BIN_BCD_MUXP
+                Movb BCD,BCD2
                 Jsr BCD_7Seg
 FIN_TareaConv:  Rts
 
@@ -318,6 +318,35 @@ BCD_7Seg:
                 Ldab A,X                          ; Cargar patron de segmento
                 Stab Dsp4                         ; Guardar en DISP4
 FIN_BCD7_Seg    Rts
+
+;================================= BIN BCD MUXP ================================
+
+BIN_BCD_MUXP
+		Movb #7,Cont_BCD
+                Clr BCD
+BIN_BCD_Loop    Lsla                              ; Pasar bits a BCD por medio
+                Ror BCD                           ; del carry
+                Ldab BCD
+                Andb #$0F                         ; Obtener nibble bajo de BCD
+                Cmpb #$05
+                Bcs Nibble_Alto
+                Addb #$03
+Nibble_Alto     Psha
+                Tfr B,A
+		Ldab BCD
+                Andb #$F0
+                Cmpb #$50
+                Bcs Dec_Cont_BCD
+                Addb #$30
+Dec_Cont_BCD    Aba
+		Stab BCD
+		Pula
+		Dec Cont_BCD
+                Tst Cont_BCD
+                Bne BIN_BCD_Loop
+                Lsla
+                Ror BCD
+FIN_BIN_BCD     Rts
        
 ;******************************************************************************
 ;                               TAREA LED TESTIGO
