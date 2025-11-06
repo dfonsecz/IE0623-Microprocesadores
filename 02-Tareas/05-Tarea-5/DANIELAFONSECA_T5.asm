@@ -85,6 +85,7 @@ DIG4              EQU $08
 
                   ORG $102F
 IniDsp:           db $28
+                  db $28
                   db $06
                   db $0C
                   db $FF
