@@ -63,8 +63,8 @@ Dsp4:             ds 1
 LEDS:             ds 1
 Cont_Dig:         ds 1
 Brillo:           ds 1
-BIN1:             db #$11
-BIN2:             db #$11
+BIN1:             db #00
+BIN2:             db #00
 BCD:              ds 1
 Cont_BCD:         ds 1
 BCD1:             ds 1
@@ -322,31 +322,31 @@ FIN_BCD7_Seg    Rts
 ;================================= BIN BCD MUXP ================================
 
 BIN_BCD_MUXP
-		Movb #7,Cont_BCD
+                Movb #7,Cont_BCD
                 Clr BCD
 BIN_BCD_Loop    Lsla                              ; Pasar bits a BCD por medio
-                Ror BCD                           ; del carry
-                Psha
-		Ldaa BCD
-                Anda #$0F                         ; Obtener nibble bajo de BCD
-                Cmpa #$05
+                Rol BCD                           ; del carry
+                Psha                              ; Guardar entrada en la pila
+                Ldab BCD
+                Andb #$0F                         ; Obtener nibble bajo de BCD
+                Cmpb #$05
                 Bcs Nibble_Alto
-                Adda #$03
-Nibble_Alto     Psha
-		Ldaa BCD
-                Anda #$F0
-                Cmpa #$50
+                Addb #$03
+Nibble_Alto     Pshb                              ; Guardar nibble bajo actuali-
+                Ldab BCD                          ; zado en la pila
+                Andb #$F0
+                Cmpb #$50
                 Bcs Dec_Cont_BCD
-                Adda #$30
-Dec_Cont_BCD    Pulb
-		Aba
-		Staa BCD
-		Pula
-		Dec Cont_BCD
-                Tst Cont_BCD
-                Bne BIN_BCD_Loop
-                Lsla
-                Ror BCD
+                Addb #$30
+Dec_Cont_BCD    Pula                              ; Cargar nibble bajo
+                Aba                               ; Sumar nibble bajo y alto
+                Staa BCD                          ; Actualizar valor en BCD
+                Pula                              ; Recargar valor de entrada
+                Dec Cont_BCD                      ; Decrementar #de desplazamiento
+                Tst Cont_BCD                      ; Verificar si llego a cero,
+                Bne BIN_BCD_Loop                  ; Si no, continuar loop
+                Lsla                              ; Desplazar x ultima vez a la
+                Rol BCD                           ; izquierda
 FIN_BIN_BCD     Rts
        
 ;******************************************************************************
