@@ -215,10 +215,11 @@ Fin_Base1S:      dB $FF
         Movw #tTimer10mS,Timer10mS         ;Inicia los timers de bases de tiempo
         Movw #tTimer100mS,Timer100mS
         Movw #tTimer1S,Timer1S
-        
+
         Movb #tTimerLDTst,TimerLDTst  ;inicia timer parpadeo led testigo
         Movb #0,Timer_LP
-        
+
+        Movw #TareaLDTst_Est1,EstPres_LDTst
         Movw #LeerPB_Est1,EstPres_LeerPB1
         Movw #Teclado_Est1,Est_Pres_TCL
         
@@ -245,7 +246,6 @@ Despachador_Tareas
         Jsr Tarea_Led_Testigo
         ;Jsr Tarea_LeerPB
         ;Jsr Tarea_Teclado
-        Jsr Tarea_Leds
         Bra Despachador_Tareas
        
 ;******************************************************************************
@@ -292,37 +292,6 @@ TareaLDTst_Est3
                 Movw #TareaLDTst_Est1,EstPres_LDTst
                 Movb #tTimerLDTst,TimerLDTst
 FIN_LDTst_3     Rts
-
-;******************************************************************************
-;                                  TAREA LEDS
-;******************************************************************************
-
-Tarea_Leds
-                BrSet Banderas_1,ShortP0,ON     ; ShortPress enciende PH6
-                BrSet Banderas_1,LongP0,OFF
-                Bra Function_Leds
-ON              BClr Banderas_1,ShortP0         ; Borra banderas asociadas
-                BSet PORTB,$40                  ; Encender PB6
-                Bra FIN_Tarea_Leds
-OFF             BClr Banderas_1,LongP0          ; Borra banderas asociadas
-                BClr PORTB,$40                  ; Apagar PB6
-                Jsr Borrar_Num_Array
-                Bra FIN_Tarea_Leds
-Function_Leds   BClr PORTB,$0F                  ; Apaga leds de la parte baja
-                BrClr Funcion,$10,Led_0         ; Si Funcion = 00010000, PB0 ON
-                BrClr Funcion,$20,Led_1         ; Si Funcion = 00100000, PB1 ON
-                BrClr Funcion,$40,Led_2         ; Si Funcion = 01000000, PB2 ON
-                BrClr Funcion,$80,Led_3         ; Si Funcion = 10000000, PB3 ON
-                Bra FIN_Tarea_Leds
-Led_0           BSet PORTB,$01                  ; Encender PB0
-                Bra FIN_Tarea_Leds
-Led_1           BSet PORTB,$02                  ; Encender PB1
-                Bra FIN_Tarea_Leds
-Led_2           BSet PORTB,$04                  ; Encender PB2
-                Bra FIN_Tarea_Leds
-Led_3           BSet PORTB,$08                  ; Encender PB3
-                Bra FIN_Tarea_Leds
-FIN_Tarea_Leds  Rts
 
 ;******************************************************************************
 ;                               TAREA LEER PB
@@ -426,7 +395,7 @@ PantallaMUX_Est2:
                 Bne FIN_PantMUX_2
                 BSet PTP,$0F
                 BSet PTJ,$02
-                ;Movw #PantallaMUX_Est3,EstPres_PantallaMUX
+                Movw #PantallaMUX_Est1,EstPres_PantallaMUX
 FIN_PantMUX_2   Rts
 
 ;******************************************************************************
