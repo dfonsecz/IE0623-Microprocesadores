@@ -34,7 +34,8 @@ tSegundosTCM:     EQU 15
 tMinutosTCM:      EQU 1
 
 PortPB:           EQU PTIH   ; Se define el puerto donde se ubica el PB
-MaskPB:           EQU $01    ; Se define el bit del PB en el puerto
+MaskPB0:          EQU $01    ; Se define el bit 0 del PB en el puerto
+MaskPB1:          EQU $08    ; Se define el bit 3 del PB en el puerto
 
 ;=============================== TAREA TECLADO =================================
 
@@ -47,7 +48,7 @@ Cont_TCL:         ds 1       ; Variable para guardar tamano actual de Num_Array
 Patron:           ds 1       ; Variable para guardar patron a escribir y leer
                              ; en el teclado
 Funcion:          ds 1       ; Variable para guardar patron a escribir en LEDs
-Est_Pres_TCL:     ds 2       ; Variable para direccion de estado de maquina de
+EstPres_TCL:     ds 2       ; Variable para direccion de estado de maquina de
                              ; estados Tarea_Teclado
 
 ; Arreglo de teclas presionadas
@@ -259,7 +260,7 @@ Fin_Base1S:      dB $FF
         Movw #TareaLDTst_Est1,EstPres_LDTst
         Movw #PantallaMUX_Est1,EstPres_PantallaMUX
         Movw #LeerPB_Est1,EstPres_LeerPB1
-        Movw #Teclado_Est1,Est_Pres_TCL
+        Movw #Teclado_Est1,EstPres_TCL
         Movw #TareaTCM_Est1,EstPres_TCM
         Movw #TareaLCD_Est1,EstPres_TareaLCD
         Movw #TareaSendLCD_Est1,EstPres_SendLCD
@@ -325,16 +326,16 @@ Timer2mS_Reach0 Jsr Decre_TablaTimers             ; Decrementar timers
 ;===============================================================================
 
 Despachador_Tareas
-        	BrSet Banderas_2,LCD_OK,NoNewMsg
-        	Jsr Tarea_LCD
+                BrSet Banderas_2,LCD_OK,NoNewMsg
+                Jsr Tarea_LCD
 NoNewMsg        Jsr Decre_TablaTimers
-        	Jsr Tarea_Led_Testigo
-        	Jsr Tarea_Conversion
-        	Jsr Tarea_PantallaMUX
-        	Jsr Tarea_TCM
-        	;Jsr Tarea_LeerPB
-        	;Jsr Tarea_Teclado
-        	Bra Despachador_Tareas
+                Jsr Tarea_Led_Testigo
+                Jsr Tarea_Conversion
+                Jsr Tarea_PantallaMUX
+                Jsr Tarea_TCM
+                Jsr Tarea_LeerPB
+                ;Jsr Tarea_Teclado
+                Bra Despachador_Tareas
 
 ;******************************************************************************
 ;                               TAREA CONVERSIONES
@@ -474,7 +475,7 @@ Tarea_TCM
 
 ;============================= TAREA TCM ESTADO 1 ==============================
 
-TareaTCM_Est1   BrSet Banderas_1,ShortP1,FIN_TareaTCM_1
+TareaTCM_Est1   BrClr Banderas_1,ShortP1,FIN_TareaTCM_1
                 Movb #tMinutosTCM,MinutosTCM
                 Movb #tSegundosTCM,SegundosTCM
                 Movw #MSG1_P1,Msg_L1
@@ -511,7 +512,7 @@ FinTareaPB      Rts
 ;============================= LEER PB ESTADO 1 ================================
 
 LeerPB_Est1
-                BrSet PortPB,MaskPB,FIN_Est1      ; Si el boton es presionado
+                BrSet PortPB,MaskPB1,FIN_Est1      ; Si el boton es presionado
 No_FIN_Est1     Movb #tSupRebPB,Timer_RebPB       ; Cargar timers
                 Movb #tShortP,Timer_SHP
                 Movb #tLongP,Timer_LP
@@ -523,10 +524,10 @@ FIN_Est1        Rts
 LeerPB_Est2
                 Tst Timer_RebPB                   ; Si se agota el timer
                 Bne FIN_Est2                      ; verificar si aun sigue pre-
-                BrSet PortPB,MaskPB,Ret_Est1_1    ; sionado el boton
+                BrSet PortPB,MaskPB1,Ret_Est1_1    ; sionado el boton
                 Movw #LeerPB_Est3,EstPres_LeerPB1
                 Bra FIN_Est2
-Ret_Est1_1      Movw #LeerPB_Est1,EstPres_LeerPB1; Sino regresar a estado 1
+Ret_Est1_1      Movw #LeerPB_Est1,EstPres_LeerPB1 ; Sino regresar a estado 1
 FIN_Est2        Rts
 
 ;============================= LEER PB ESTADO 3 ================================
@@ -534,10 +535,10 @@ FIN_Est2        Rts
 LeerPB_Est3
                 Tst Timer_SHP                     ; Verificar si el timer short
                 Bne FIN_Est3                      ; press se agoto
-                BrSet PortPB,MaskPB,Ret_Est1_2    ; Si se presiona el boton
+                BrSet PortPB,MaskPB1,Ret_Est1_2    ; Si se presiona el boton
                 Movw #LeerPB_Est4,EstPres_LeerPB1 ; Sino, pasar a estado 4
                 Bra FIN_Est3
-Ret_Est1_2      BSet Banderas_1,ShortP0           ; Levantar bandera ShortP y
+Ret_Est1_2      BSet Banderas_1,ShortP1              ; Levantar bandera ShortP y
                 Movw #LeerPB_Est1,EstPres_LeerPB1 ; regresar a estado 1
 FIN_Est3        Rts
 
@@ -545,12 +546,12 @@ FIN_Est3        Rts
 
 LeerPB_Est4     Tst Timer_LP                      ; Si no se agota el timer long
                 Bne TestPB                        ; press, y se presiona el boton
-                BrClr PortPB,MaskPB,FIN_Est4      ; es un short press
-                BSet Banderas_1,LongP0
+                BrClr PortPB,MaskPB1,FIN_Est4      ; es un short press
+                BSet Banderas_1,LongP1
 Ret_Est1_3      Movw #LeerPB_Est1,EstPres_LeerPB1 ; sino es un long press
                 Bra FIN_Est4
-TestPB          BrClr PortPB,MaskPB,FIN_Est4
-                BSet Banderas_1,ShortP0
+TestPB          BrClr PortPB,MaskPB1,FIN_Est4
+                BSet Banderas_1,ShortP1
                 Bra Ret_Est1_3
 FIN_Est4        Rts
 
@@ -724,7 +725,7 @@ FIN_TareaLCD_2  Rts
 ;                               TAREA TECLADO
 ;******************************************************************************
 
-Tarea_Teclado   Ldx Est_Pres_TCL
+Tarea_Teclado   Ldx EstPres_TCL
                 Jsr 0,X
                 Rts
 
@@ -735,7 +736,7 @@ Teclado_Est1    Jsr Leer_Teclado                  ; Si se presiona alguna tecla
                 Cmpa #$FF
                 Beq FIN_Tecl_Est1
                 Movb #tSupRebTCL,Timer_RebTCL     ; carga timer de supresion de
-                Movw #Teclado_Est2,Est_Pres_TCL   ; rebotes y siguiente estado
+                Movw #Teclado_Est2,EstPres_TCL   ; rebotes y siguiente estado
 FIN_Tecl_Est1   Rts
 
 ;============================= TECLADO ESTADO 2 ================================
@@ -747,9 +748,9 @@ Teclado_Est2    Tst Timer_RebTCL                  ; Si no se agota el timer,
                 Ldaa Tecla_IN
                 Cmpa Tecla
                 Bne Regr_Tecl_Est1
-                Movw #Teclado_Est3,Est_Pres_TCL   ; Si son iguales pasa a est 3
+                Movw #Teclado_Est3,EstPres_TCL   ; Si son iguales pasa a est 3
                 Bra FIN_Tecl_Est2
-Regr_Tecl_Est1  Movw #Teclado_Est1,Est_Pres_TCL   ; Sino se devuelve al 1
+Regr_Tecl_Est1  Movw #Teclado_Est1,EstPres_TCL   ; Sino se devuelve al 1
 FIN_Tecl_Est2   Rts
 ;============================= TECLADO ESTADO 3 ================================
 
@@ -760,10 +761,10 @@ Teclado_Est3    Jsr Leer_Teclado
                 Ldaa Tecla_IN                     ; Si la tecla ingresada es de
                 Cmpa #15                          ; funcion, la guarda se
                 Bhi Guardar_Funcion
-                Movw #Teclado_Est4,Est_Pres_TCL   ; devuelve al estado 1
+                Movw #Teclado_Est4,EstPres_TCL   ; devuelve al estado 1
                 Bra FIN_Tecl_Est3
 Guardar_Funcion Movb Tecla_IN,Funcion             ; sino pasa al estado 4
-                Movw #Teclado_Est1,Est_Pres_TCL
+                Movw #Teclado_Est1,EstPres_TCL
 FIN_Tecl_Est3   Rts
 
 ;============================= TECLADO ESTADO 4 ================================
@@ -789,7 +790,7 @@ Borrar_Tecl     Dec Cont_TCL                    ; Borrar la tecla de Num_Array
 Es_Enter        Cmpa #$0E                       ; Es la tecla Enter ($0E)?
                 Bne FIN_Tecl_Est4
 Fin_Num_Arr     Movb #0,Cont_TCL                ; Resetear offset
-                Movw #Teclado_Est1,Est_Pres_TCL
+                Movw #Teclado_Est1,EstPres_TCL
                 BSet Banderas_1,ArrayOK         ; Indicar que Num_Array esta listo
                 Bra FIN_Tecl_Est4
 Primera_Tecla   Cmpa #$0B                       ; Es la tecla Borrar ($0B)?
@@ -802,7 +803,7 @@ Es_Enter2       Cmpa #$0E
 Agregar_Tecl    Movb Tecla_IN,B,X               ; Guardar la tecla ingresada
                 Inc Cont_TCL                    ; en Num_Array
 FIN_Tecl_Est4   Movb #$FF,Tecla_IN              ; Limpiar valor Tecla_IN
-                Movw #Teclado_Est1,Est_Pres_TCL ; Regresar a estado 1
+                Movw #Teclado_Est1,EstPres_TCL ; Regresar a estado 1
                 Rts
 
 ;******************************************************************************
