@@ -328,16 +328,16 @@ Timer2mS_Reach0 Jsr Decre_TablaTimers             ; Decrementar timers
 ;===============================================================================
 
 Despachador_Tareas
-        	BrSet Banderas_2,LCD_OK,NoNewMsg
-        	Jsr Tarea_LCD
+                BrSet Banderas_2,LCD_OK,NoNewMsg
+                Jsr Tarea_LCD
 NoNewMsg        Jsr Decre_TablaTimers
-        	Jsr Tarea_Led_Testigo
-        	Jsr Tarea_Conversion
-        	Jsr Tarea_PantallaMUX
-        	Jsr Tarea_TCM
-        	;Jsr Tarea_LeerPB
-        	;Jsr Tarea_Teclado
-        	Bra Despachador_Tareas
+                Jsr Tarea_Led_Testigo
+                Jsr Tarea_Conversion
+                Jsr Tarea_PantallaMUX
+                Jsr Tarea_TCM
+                Jsr Tarea_LeerPB
+                ;Jsr Tarea_Teclado
+                Bra Despachador_Tareas
         
 ;******************************************************************************
 ;                               TAREA CONVERSIONES
@@ -501,14 +501,69 @@ TareaTCM_Est2   Movb SegundosTCM,BIN1
                 Movb #InicioLD,LEDS
                 Movw #TareaTCM_Est1,EstPres_TCM
 Dec_Minutos     Movb #60,SegundosTCM
-		Dec MinutosTCM
+                Dec MinutosTCM
 FIN_TareaTCM_2  Rts
 
 ;******************************************************************************
 ;                               TAREA LEER PB0
 ;******************************************************************************
 
-Tarea_LeerPB0
+Tarea_LeerPB
+                Ldx EstPres_LeerPB0
+                Jsr 0,X
+FinTareaPB      Rts
+
+;============================= LEER PB ESTADO 1 ================================
+
+LeerPB_Est1
+                BrSet PortPB,MaskPB,FIN_Est1      ; Si el boton es presionado
+No_FIN_Est1     Movb #tSupRebPB,Timer_RebPB       ; Cargar timers
+                Movb #tShortP,Timer_SHP
+                Movb #tLongP,Timer_LP
+                Movw #LeerPB_Est2,EstPres_LeerPB0 ; Continuar a estado 2
+FIN_Est1        Rts
+
+;============================= LEER PB ESTADO 2 ================================
+
+LeerPB_Est2
+                Tst Timer_RebPB                   ; Si se agota el timer
+                Bne FIN_Est2                      ; verificar si aun sigue pre-
+                BrSet PortPB,MaskPB,Ret_Est1_1    ; sionado el boton
+                Movw #LeerPB_Est3,EstPres_LeerPB0
+                Bra FIN_Est2
+Ret_Est1_1      Movw #LeerPB_Est1,EstPres_LeerPB0; Sino regresar a estado 1
+FIN_Est2        Rts
+
+;============================= LEER PB ESTADO 3 ================================
+
+LeerPB_Est3
+                Tst Timer_SHP                     ; Verificar si el timer short
+                Bne FIN_Est3                      ; press se agoto
+                BrSet PortPB,MaskPB,Ret_Est1_2    ; Si se presiona el boton
+                Movw #LeerPB_Est4,EstPres_LeerPB0 ; Sino, pasar a estado 4
+                Bra FIN_Est3
+Ret_Est1_2      BSet Banderas_1,ShortP0           ; Levantar bandera ShortP y
+                Movw #LeerPB_Est1,EstPres_LeerPB0 ; regresar a estado 1
+FIN_Est3        Rts
+
+;============================= LEER PB ESTADO 4 ================================
+
+LeerPB_Est4     Tst Timer_LP                      ; Si no se agota el timer long
+                Bne TestPB                        ; press, y se presiona el boton
+                BrClr PortPB,MaskPB,FIN_Est4      ; es un short press
+                BSet Banderas_1,LongP0
+Ret_Est1_3      Movw #LeerPB_Est1,EstPres_LeerPB0 ; sino es un long press
+                Bra FIN_Est4
+TestPB          BrClr PortPB,MaskPB,FIN_Est4
+                BSet Banderas_1,ShortP0
+                Bra Ret_Est1_3
+FIN_Est4        Rts
+
+;******************************************************************************
+;                               TAREA LEER PB1
+;******************************************************************************
+
+Tarea_LeerPB1
                 Ldx EstPres_LeerPB1
                 Jsr 0,X
 FinTareaPB      Rts
