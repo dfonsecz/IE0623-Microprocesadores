@@ -686,12 +686,12 @@ Tarea_LCD:
 TareaLCD_Est1
                 BClr Banderas_2,FinSendLCD
                 BClr Banderas_2,RS
-                BrClr Banderas_2,Second_Line,Line_2
+                BrSet Banderas_2,Second_Line,Line_2
                 Movb #ADD_L1,CharLCD
-                Movw #Msg_L1,Punt_LCD
+                Movw Msg_L1,Punt_LCD
                 Bra FIN_TareaLCD_1
 Line_2          Movb #ADD_L2,CharLCD
-                Movw #Msg_L2,Punt_LCD
+                Movw Msg_L2,Punt_LCD
 FIN_TareaLCD_1  Jsr SendLCD
                 Movw #TareaLCD_Est2,EstPres_TareaLCD
                 Rts
