@@ -326,7 +326,7 @@ Timer2mS_Reach0 Jsr Decre_TablaTimers             ; Decrementar timers
 
 Despachador_Tareas
         	BrSet Banderas_2,LCD_OK,NoNewMsg
-        	;Jsr Tarea_LCD
+        	Jsr Tarea_LCD
 NoNewMsg        Jsr Decre_TablaTimers
         	Jsr Tarea_Led_Testigo
         	Jsr Tarea_Conversion
@@ -685,7 +685,7 @@ Tarea_LCD:
 
 ;============================= TAREA LCD ESTADO 1 ===============================
 
-TareaLCD_Est1
+TareaLCD_Est1:
                 BClr Banderas_2,FinSendLCD
                 BClr Banderas_2,RS
                 BrSet Banderas_2,Second_Line,Line_2
@@ -703,7 +703,7 @@ FIN_TareaLCD_1  Jsr SendLCD
 TareaLCD_Est2
                 BrClr Banderas_2,FinSendLCD,Call_SendLCD_4
                 BClr Banderas_2,FinSendLCD
-                BClr Banderas_2,RS
+                BSet Banderas_2,RS
                 Ldx Punt_LCD
                 Movb 1,X+,CharLCD
                 Ldaa CharLCD
