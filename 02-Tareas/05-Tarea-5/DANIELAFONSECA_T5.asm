@@ -99,6 +99,10 @@ EstPres_TareaLCD: ds 2       ; Variable para guardar estado de Tarea LCD
 ; Comandos
 Clear_Display:    EQU $01
 
+; Direcciones de las lineas del LCD
+ADD_L1:           EQU $80
+ADD_L2:           EQU $C0
+
 
 ;================================ TAREA LEER PB1 ===============================
 
@@ -249,7 +253,7 @@ Fin_Base1S:      dB $FF
         Movb #0,Timer_LP
         
         Movb SegundosTCM,BIN1
-	Movb MinutosTCM,BIN2
+        Movb MinutosTCM,BIN2
 
         ; Inicializacion de estados de maquinas de estado
         Movw #TareaLDTst_Est1,EstPres_LDTst
@@ -262,7 +266,7 @@ Fin_Base1S:      dB $FF
         
         ; Inicializacion de Pantalla LCD (timers)
         Movw #tTimer260uS,Timer260uS
-	Movw #tTimer40uS,Timer40uS
+        Movw #tTimer40uS,Timer40uS
         
         ; Pantalla MUX
         Movb #$01,Cont_Dig
@@ -284,18 +288,18 @@ Fin_Base1S:      dB $FF
         Cli
         Clr Banderas_1
         
-	Jsr Init_LCD
-	Bra Despachador_Tareas
+        Jsr Init_LCD
+        Bra Despachador_Tareas
 
 ;******************************************************************************
 ;                              INICIALICION LCD
 ;******************************************************************************
 
 Init_LCD        ; Inicializacion de Pantalla LCD (otros)
-        	Movb #$3F,DDRK
-        	Movw #IniDsp,Punt_LCD
-        	Clr Banderas_2    ; Apaga las banderas RS, SecondLine, y LCD_OK
-		Ldx Punt_LCD
+                Movb #$3F,DDRK
+                Movw #IniDsp,Punt_LCD
+                Clr Banderas_2    ; Apaga las banderas RS, SecondLine, y LCD_OK
+                Ldx Punt_LCD
 Init_LCD_Loop   Movb 1,X+,CharLCD
                 Ldaa CharLCD
                 Cmpa #$FF
@@ -310,7 +314,7 @@ Call_SendLCD_2  Jsr SendLCD
                 Bra Init_LCD_Loop
 FIN_Init_LCD    Movb tTimer2mS,Timer2mS
 Timer2mS_Reach0 Jsr Decre_TablaTimers
-		Tst Timer2mS
+                Tst Timer2mS
                 Bne Timer2mS_Reach0
                 Rts
         
@@ -325,6 +329,7 @@ Despachador_Tareas
         Jsr Tarea_Conversion
         Jsr Tarea_PantallaMUX
         Jsr Tarea_TCM
+        Jsr Tarea_LCD
         ;Jsr Tarea_LeerPB
         ;Jsr Tarea_Teclado
         Bra Despachador_Tareas
@@ -619,10 +624,10 @@ TareaSendLCD_Est1:
                 Lsra
                 Lsra
                 Staa PORTK
-                BrClr Banderas_2,RS,Clear_RS
-                BSet PORTK,RS
+                BrClr Banderas_2,RS,Set_RS
+                BClr PORTK,RS
                 Bra Enable_LCD
-Clear_RS        BClr PORTK,RS
+Set_RS          BSet PORTK,RS
 Enable_LCD      BSet PORTK,$02
                 Movw #tTimer260uS,Timer260uS
                 Movw #TareaSendLCD_Est2,EstPres_SendLCD
@@ -638,12 +643,13 @@ TareaSendLCD_Est2:
                 Anda #$0F
                 Lsla
                 Lsla
-                BrClr Banderas_2,RS,Clear_RS_2
-                BSet PORTK,RS
+                Staa PORTK
+                BrClr Banderas_2,RS,Set_RS_2
+                BClr PORTK,RS
                 Bra Load_Timer
-Clear_RS_2      BClr PORTK,RS
+Set_RS_2        BSet PORTK,RS
 Load_Timer      BSet PORTK,$02
-		Movw #tTimer260uS,Timer260uS
+                Movw #tTimer260uS,Timer260uS
                 Movw #TareaSendLCD_Est3,EstPres_SendLCD
 FIN_SendLCD_2   Rts
 
@@ -672,22 +678,44 @@ FIN_SendLCD_4   Rts
 
 Tarea_LCD:
                 Ldx EstPres_TareaLCD
+                Jsr 0,X
+                Rts
 
 ;============================= TAREA LCD ESTADO 1 ===============================
 
-TareaLCD_Est1:
+TareaLCD_Est1
+                BClr Banderas_2,FinSendLCD
+                BClr Banderas_2,RS
+                BrClr Banderas_2,Second_Line,Line_2
+                Movb #ADD_L1,CharLCD
+                Movw #Msg_L1,Punt_LCD
+                Bra FIN_TareaLCD_1
+Line_2          Movb #ADD_L2,CharLCD
+                Movw #Msg_L2,Punt_LCD
+FIN_TareaLCD_1  Jsr SendLCD
+                Movw #TareaLCD_Est2,EstPres_TareaLCD
+                Rts
 
 ;============================= TAREA LCD ESTADO 2 ===============================
 
-TareaLCD_Est2:
-
-;============================= TAREA LCD ESTADO 3 ===============================
-
-TareaLCD_Est3:
-
-;============================= TAREA LCD ESTADO 4 ===============================
-
-TareaLCD_Est4:
+TareaLCD_Est2
+                BrClr Banderas_2,FinSendLCD,Call_SendLCD_4
+                BClr Banderas_2,FinSendLCD
+                BClr Banderas_2,RS
+                Ldx Punt_LCD
+                Movb 1,X+,CharLCD
+                Ldaa CharLCD
+                Cmpa #$FF
+                Bne Call_SendLCD_4
+                BrSet Banderas_2,FinSendLCD,SwitchLine
+                BSet Banderas_2,Second_Line
+                Bra SigEst_LCD
+SwitchLine      BClr Banderas_2,Second_Line
+                BSet Banderas_2,LCD_OK
+SigEst_LCD      Movw #TareaLCD_Est1,EstPres_TareaLCD
+                Bra FIN_TareaLCD_2
+Call_SendLCD_4  Jsr SendLCD
+FIN_TareaLCD_2  Rts
 
 ;******************************************************************************
 ;                               TAREA TECLADO
