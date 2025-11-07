@@ -323,16 +323,16 @@ Timer2mS_Reach0 Jsr Decre_TablaTimers
 ;===============================================================================
 
 Despachador_Tareas
-
-        Jsr Decre_TablaTimers
-        Jsr Tarea_Led_Testigo
-        Jsr Tarea_Conversion
-        Jsr Tarea_PantallaMUX
-        Jsr Tarea_TCM
-        Jsr Tarea_LCD
-        ;Jsr Tarea_LeerPB
-        ;Jsr Tarea_Teclado
-        Bra Despachador_Tareas
+        	BrSet Banderas_2,LCD_OK,NoNewMsg
+        	Jsr Tarea_LCD
+NoNewMsg        Jsr Decre_TablaTimers
+        	Jsr Tarea_Led_Testigo
+        	Jsr Tarea_Conversion
+        	Jsr Tarea_PantallaMUX
+        	Jsr Tarea_TCM
+        	;Jsr Tarea_LeerPB
+        	;Jsr Tarea_Teclado
+        	Bra Despachador_Tareas
         
 ;******************************************************************************
 ;                               TAREA CONVERSIONES
@@ -619,16 +619,16 @@ SendLCD:
 ;============================= SEND LCD ESTADO 1 ===============================
 
 TareaSendLCD_Est1:
-                Ldaa CharLCD
-                Anda #$F0
-                Lsra
-                Lsra
+                Ldaa CharLCD                      ; Cargar caracter a enviar
+                Anda #$F0                         ; Filtrar la parte alta
+                Lsra                              ; Guardar en los bits 5:2 del
+                Lsra                              ; puerto K
                 Staa PORTK
-                BrClr Banderas_2,RS,Set_RS
-                BClr PORTK,RS
+                BrClr Banderas_2,RS,Set_RS        ; Si es un comando, borrar
+                BClr PORTK,RS                     ; PORTK.0
                 Bra Enable_LCD
-Set_RS          BSet PORTK,RS
-Enable_LCD      BSet PORTK,$02
+Set_RS          BSet PORTK,RS                     ; Si es dato, levantar PORTK.0
+Enable_LCD      BSet PORTK,$02                    ; Habilitar LCD
                 Movw #tTimer260uS,Timer260uS
                 Movw #TareaSendLCD_Est2,EstPres_SendLCD
 FIN_SendLCD_1   Rts
@@ -636,19 +636,19 @@ FIN_SendLCD_1   Rts
 ;============================= SEND LCD ESTADO 2 ===============================
 
 TareaSendLCD_Est2:
-                Ldd Timer260uS
-                Bne FIN_SendLCD_2
-                BClr PORTK,$02
-                Ldaa CharLCD
-                Anda #$0F
-                Lsla
-                Lsla
+                Ldd Timer260uS                    ; Mientras no se acabe el timer
+                Bne FIN_SendLCD_2                 ; se mantiene en este estado
+                BClr PORTK,$02                    ; Deshabilita LCD
+                Ldaa CharLCD                      ; Carga caracter a enviar
+                Anda #$0F                         ; Filtra solo la parte baja
+                Lsla                              ; Guarda en los bits 5:2 del
+                Lsla                              ; puerto K
                 Staa PORTK
-                BrClr Banderas_2,RS,Set_RS_2
-                BClr PORTK,RS
+                BrClr Banderas_2,RS,Set_RS_2      ; Si es un comando, borrar
+                BClr PORTK,RS                     ; PORTK.0
                 Bra Load_Timer
-Set_RS_2        BSet PORTK,RS
-Load_Timer      BSet PORTK,$02
+Set_RS_2        BSet PORTK,RS                     ; Si es dato, levantar PORTK.0
+Load_Timer      BSet PORTK,$02                    ; Habilitar LCD
                 Movw #tTimer260uS,Timer260uS
                 Movw #TareaSendLCD_Est3,EstPres_SendLCD
 FIN_SendLCD_2   Rts
@@ -656,9 +656,9 @@ FIN_SendLCD_2   Rts
 ;============================= SEND LCD ESTADO 3 ===============================
 
 TareaSendLCD_Est3:
-                Ldd Timer260uS
-                Bne FIN_SendLCD_3
-                BClr PORTK,$02
+                Ldd Timer260uS                    ; Mientras no se acabe el timer
+                Bne FIN_SendLCD_3                 ; se mantiene en este estado
+                BClr PORTK,$02                    ; Deshabilitar LCD
                 Movw #tTimer40uS,Timer40uS
                 Movw #TareaSendLCD_Est4,EstPres_SendLCD
 FIN_SendLCD_3   Rts
@@ -666,9 +666,9 @@ FIN_SendLCD_3   Rts
 ;============================= SEND LCD ESTADO 4 ===============================
 
 TareaSendLCD_Est4:
-                Ldd Timer40uS
-                Bne FIN_SendLCD_4
-                BSet Banderas_2,FinSendLCD
+                Ldd Timer40uS                     ; Mientras no se acabe el timer
+                Bne FIN_SendLCD_4                 ; se mantiene en este estado
+                BSet Banderas_2,FinSendLCD        ; Activa bandera FinSendLCD
                 Movw #TareaSendLCD_Est1,EstPres_SendLCD
 FIN_SendLCD_4   Rts
 
@@ -707,7 +707,7 @@ TareaLCD_Est2
                 Ldaa CharLCD
                 Cmpa #$FF
                 Bne Call_SendLCD_4
-                BrSet Banderas_2,FinSendLCD,SwitchLine
+                BrSet Banderas_2,Second_Line,SwitchLine
                 BSet Banderas_2,Second_Line
                 Bra SigEst_LCD
 SwitchLine      BClr Banderas_2,Second_Line
