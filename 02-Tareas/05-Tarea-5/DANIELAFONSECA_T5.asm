@@ -143,6 +143,9 @@ EstPres_LDTst     ds 1
 
 ;================================== GENERALES ==================================
 
+InicioLD:         EQU $55
+TemporalLD:       EQU $AA
+
 ;==================================== TABLAS ===================================
 
                   ORG $1100
@@ -476,10 +479,11 @@ Tarea_TCM
 ;============================= TAREA TCM ESTADO 1 ==============================
 
 TareaTCM_Est1   BrClr Banderas_1,ShortP1,FIN_TareaTCM_1
+                BClr Banderas_1,ShortP1
                 Movb #tMinutosTCM,MinutosTCM
                 Movb #tSegundosTCM,SegundosTCM
-                Movw #MSG1_P1,Msg_L1
-                Movw #MSG1_P2,Msg_L2
+                Movw #MSG2_P1,Msg_L1
+                Movw #MSG2_P2,Msg_L2
                 Movw #TareaTCM_Est2,EstPres_TCM
 FIN_TareaTCM_1  Rts
 
@@ -487,6 +491,7 @@ FIN_TareaTCM_1  Rts
 
 TareaTCM_Est2   Movb SegundosTCM,BIN1
                 Movb MinutosTCM,BIN2
+                Movb #TemporalLD,LEDS
                 Tst SegundosTCM
                 Bne FIN_TareaTCM_2
                 Tst MinutosTCM
@@ -495,7 +500,9 @@ TareaTCM_Est2   Movb SegundosTCM,BIN1
                 Movb tMinutosTCM,BIN2
                 Movw #MSG1_P1,Msg_L1
                 Movw #MSG1_P2,Msg_L2
+                Movb #InicioLD,LEDS
                 Movw #TareaTCM_Est1,EstPres_TCM
+                Bra FIN_TareaTCM_2
 Dec_Minutos     Dec MinutosTCM
                 Movb #60,SegundosTCM
 FIN_TareaTCM_2  Rts
