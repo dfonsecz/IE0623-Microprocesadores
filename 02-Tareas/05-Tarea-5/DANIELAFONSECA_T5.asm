@@ -296,24 +296,26 @@ Fin_Base1S:      dB $FF
 ;******************************************************************************
 
 Init_LCD        ; Inicializacion de Pantalla LCD (otros)
-                Movb #$3F,DDRK
-                Movw #IniDsp,Punt_LCD
-                Clr Banderas_2    ; Apaga las banderas RS, SecondLine, y LCD_OK
-                Ldx Punt_LCD
-Init_LCD_Loop   Movb 1,X+,CharLCD
-                Ldaa CharLCD
-                Cmpa #$FF
+                Movb #$3F,DDRK                    ; Inicializar como salida
+                Movw #IniDsp,Punt_LCD             ; Cargar direccion de comandos
+                BClr Banderas_2,RS                ; Inicializar banderas en 0
+                BClr Banderas_2,Second_Line
+                BClr Banderas_2,LCD_OK
+                Ldx Punt_LCD                      ; Cargar direccion de tabla
+Init_LCD_Loop   Movb 1,X+,CharLCD                 ; Pasar dato de IniDsp a CharLCD
+                Ldaa CharLCD                      ; Cargar dato desde CharLCD
+                Cmpa #$FF                         ; Llego a End of Block (EOB)?
                 Bne Call_SendLCD_2
-                Movb #Clear_Display,CharLCD
-Call_SendLCD_1  Jsr SendLCD
+                Movb #Clear_Display,CharLCD       ; Cargar en CharLCD cmd Clear
+Call_SendLCD_1  Jsr SendLCD                       ; Enviar cmd Clear
                 BrClr Banderas_2,FinSendLCD,Call_SendLCD_1
                 Bra FIN_Init_LCD
-Call_SendLCD_2  Jsr SendLCD
+Call_SendLCD_2  Jsr SendLCD                       ; Si no, enviar dato
                 BrClr Banderas_2,FinSendLCD,Call_SendLCD_2
-                BClr Banderas_2,FinSendLCD
-                Bra Init_LCD_Loop
+                BClr Banderas_2,FinSendLCD        ; Apagar bandera FinSendLCD
+                Bra Init_LCD_Loop                 ; Cargar siguiente dato
 FIN_Init_LCD    Movb tTimer2mS,Timer2mS
-Timer2mS_Reach0 Jsr Decre_TablaTimers
+Timer2mS_Reach0 Jsr Decre_TablaTimers             ; Decrementar timers
                 Tst Timer2mS
                 Bne Timer2mS_Reach0
                 Rts
@@ -324,7 +326,7 @@ Timer2mS_Reach0 Jsr Decre_TablaTimers
 
 Despachador_Tareas
         	BrSet Banderas_2,LCD_OK,NoNewMsg
-        	Jsr Tarea_LCD
+        	;Jsr Tarea_LCD
 NoNewMsg        Jsr Decre_TablaTimers
         	Jsr Tarea_Led_Testigo
         	Jsr Tarea_Conversion
@@ -624,7 +626,7 @@ TareaSendLCD_Est1:
                 Lsra                              ; Guardar en los bits 5:2 del
                 Lsra                              ; puerto K
                 Staa PORTK
-                BrClr Banderas_2,RS,Set_RS        ; Si es un comando, borrar
+                BrSet Banderas_2,RS,Set_RS        ; Si es un comando, borrar
                 BClr PORTK,RS                     ; PORTK.0
                 Bra Enable_LCD
 Set_RS          BSet PORTK,RS                     ; Si es dato, levantar PORTK.0
@@ -644,7 +646,7 @@ TareaSendLCD_Est2:
                 Lsla                              ; Guarda en los bits 5:2 del
                 Lsla                              ; puerto K
                 Staa PORTK
-                BrClr Banderas_2,RS,Set_RS_2      ; Si es un comando, borrar
+                BrSet Banderas_2,RS,Set_RS_2      ; Si es un comando, borrar
                 BClr PORTK,RS                     ; PORTK.0
                 Bra Load_Timer
 Set_RS_2        BSet PORTK,RS                     ; Si es dato, levantar PORTK.0
