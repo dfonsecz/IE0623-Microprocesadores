@@ -30,7 +30,7 @@ tShortP:          EQU 25     ; Tiempo minimo ShortPress x 10 mS
 tLongP:           EQU 3      ; Tiempo minimo LongPress en segundos
 tTimerLDTst:      EQU 5      ; Tiempo de parpadeo de LED testigo x 100 mS
 tTimerDigito:     EQU 2
-tSegundosTCM:     EQU 59
+tSegundosTCM:     EQU 15
 tMinutosTCM:      EQU 1
 
 PortPB:           EQU PTIH   ; Se define el puerto donde se ubica el PB
@@ -617,7 +617,7 @@ SendLCD:
                 Ldy EstPres_SendLCD
                 Jsr 0,Y
                 Rts
-                
+
 ;============================= SEND LCD ESTADO 1 ===============================
 
 TareaSendLCD_Est1:
@@ -706,6 +706,7 @@ TareaLCD_Est2
                 BSet Banderas_2,RS
                 Ldx Punt_LCD
                 Movb 1,X+,CharLCD
+                Stx Punt_LCD
                 Ldaa CharLCD
                 Cmpa #$FF
                 Bne Call_SendLCD_4
