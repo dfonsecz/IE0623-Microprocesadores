@@ -84,12 +84,12 @@ DIG4              EQU $08
 
 ;================================== TAREA LCD ==================================
 
-                  ORG $102F
-IniDsp:           db $28
-                  db $28
-                  db $06
-                  db $0C
-                  db $FF
+                  ORG $102F  ; Comandos
+IniDsp:           db $28     ; Function Set
+                  db $28     ; Function Set
+                  db $06     ; Entry Mode Set
+                  db $0C     ; Display ON/OFF - (D) = 1, (C) = 0, (B) = 0
+                  db $FF     ; Fin de trama
 Punt_LCD:         ds 2
 CharLCD:          ds 1
 Msg_L1:           ds 2
