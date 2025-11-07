@@ -337,7 +337,7 @@ NoNewMsg        Jsr Decre_TablaTimers
                 Jsr Tarea_PantallaMUX
                 Jsr Tarea_TCM
                 Jsr Tarea_LeerPB
-                ;Jsr Tarea_Teclado
+                Jsr Tarea_Teclado
                 Bra Despachador_Tareas
 
 ;******************************************************************************
@@ -434,10 +434,10 @@ FinLedTest      Rts
 ;========================= TAREA LED TESTIGO ESTADO 1 ==========================
 
 TareaLDTst_Est1
-                Tst TimerLDTst
-                Bne FIN_LDTst_1
-                BSet PTP,LD_Red
-                BClr PTP,LD_Green
+                Tst TimerLDTst                    ; Si el timer no se ha acabado
+                Bne FIN_LDTst_1                   ; se mantiene en este estado
+                BSet PTP,LD_Red                   ; Encender color rojo y apagar
+                BClr PTP,LD_Green                 ; el resto
                 BClr PTP,LD_Blue
                 Movw #TareaLDTst_Est2,EstPres_LDTst
                 Movb #tTimerLDTst,TimerLDTst
@@ -446,10 +446,10 @@ FIN_LDTst_1     Rts
 ;========================= TAREA LED TESTIGO ESTADO 2 ==========================
 
 TareaLDTst_Est2
-                Tst TimerLDTst
-                Bne FIN_LDTst_2
-                BClr PTP,LD_Red
-                BSet PTP,LD_Green
+                Tst TimerLDTst                    ; Si el timer no se ha acabado
+                Bne FIN_LDTst_2                   ; se mantiene en este estado
+                BClr PTP,LD_Red                   ; Encender color verde y apagar
+                BSet PTP,LD_Green                 ; el resto
                 BClr PTP,LD_Blue
                 Movw #TareaLDTst_Est3,EstPres_LDTst
                 Movb #tTimerLDTst,TimerLDTst
@@ -458,10 +458,10 @@ FIN_LDTst_2     Rts
 ;========================= TAREA LED TESTIGO ESTADO 3 ==========================
 
 TareaLDTst_Est3
-                Tst TimerLDTst
-                Bne FIN_LDTst_3
-                BClr PTP,LD_Red
-                BClr PTP,LD_Green
+                Tst TimerLDTst                    ; Si el timer no se ha acabado
+                Bne FIN_LDTst_3                   ; se mantiene en este estado
+                BClr PTP,LD_Red                   ; Encender color azul y apagar
+                BClr PTP,LD_Green                 ; el resto
                 BSet PTP,LD_Blue
                 Movw #TareaLDTst_Est1,EstPres_LDTst
                 Movb #tTimerLDTst,TimerLDTst
