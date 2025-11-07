@@ -142,6 +142,9 @@ EstPres_LDTst     ds 1
 
 ;================================== GENERALES ==================================
 
+InicioLD:         EQU $55
+TemporalLD:       EQU $AA
+
 ;==================================== TABLAS ===================================
 
                   ORG $1100
@@ -165,13 +168,13 @@ Teclas:           db $01,$02,$03
                   
 ;================================== MENSAJES ===================================
 
-MSG1_P1:          fcc "   ESCUELA DE   "
+MSG1_P1:          fcc "    ESCUELA DE   "
                   db $FF
-MSG1_P2:          fcc " ING. ELECTRICA "
+MSG1_P2:          fcc " ING. ELECTRICA  "
                   db $FF
-MSG2_P1:          fcc " uPROCESADORES  "
+MSG2_P1:          fcc "  uPROCESADORES  "
                   db $FF
-MSG2_P2:          fcc "    TAREA #5    "
+MSG2_P2:          fcc "    TAREA #5     "
                   db $FF
                                 
 ;===============================================================================
@@ -474,11 +477,11 @@ Tarea_TCM
                 
 ;============================= TAREA TCM ESTADO 1 ==============================
 
-TareaTCM_Est1   BrSet Banderas_1,ShortP1,FIN_TareaTCM_1
+TareaTCM_Est1   BrClr Banderas_1,ShortP1,FIN_TareaTCM_1
                 Movb #tMinutosTCM,MinutosTCM
                 Movb #tSegundosTCM,SegundosTCM
-                Movw #MSG1_P1,Msg_L1
-                Movw #MSG1_P2,Msg_L2
+                Movw #MSG2_P1,Msg_L1
+                Movw #MSG2_P2,Msg_L2
                 Movw #TareaTCM_Est2,EstPres_TCM
 FIN_TareaTCM_1  Rts
 
@@ -486,24 +489,26 @@ FIN_TareaTCM_1  Rts
 
 TareaTCM_Est2   Movb SegundosTCM,BIN1
                 Movb MinutosTCM,BIN2
+                Movb #TemporalLD,LEDS
                 Tst SegundosTCM
                 Bne FIN_TareaTCM_2
                 Tst MinutosTCM
                 Bne Dec_Minutos
-                Movb tSegundosTCM,BIN1
-                Movb tMinutosTCM,BIN2
+                Movb #tSegundosTCM,BIN1
+                Movb #tMinutosTCM,BIN2
                 Movw #MSG1_P1,Msg_L1
                 Movw #MSG1_P2,Msg_L2
+                Movb #InicioLD,LEDS
                 Movw #TareaTCM_Est1,EstPres_TCM
-Dec_Minutos     Dec MinutosTCM
-                Movb #60,SegundosTCM
+Dec_Minutos     Movb #60,SegundosTCM
+		Dec MinutosTCM
 FIN_TareaTCM_2  Rts
 
 ;******************************************************************************
-;                               TAREA LEER PB
+;                               TAREA LEER PB0
 ;******************************************************************************
 
-Tarea_LeerPB
+Tarea_LeerPB0
                 Ldx EstPres_LeerPB1
                 Jsr 0,X
 FinTareaPB      Rts
