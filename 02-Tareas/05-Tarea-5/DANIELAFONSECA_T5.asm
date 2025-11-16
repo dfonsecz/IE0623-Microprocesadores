@@ -61,11 +61,11 @@ Num_Array:        ds 5       ; Array donde guardar valores ingresados por el
                           ORG $1020
 EstPres_PantallaMUX:    ds 2 ; Variable para guardar estado de tarea de pantalla
                              ; multiplexada
-Dsp1:             ds 1
-Dsp2:             ds 1
-Dsp3:             ds 1
-Dsp4:             ds 1
-LEDS:             ds 1
+DSP1:             db $06
+DSP2:             db $5B
+DSP3:             db $4F
+DSP4:             db $66
+LEDS:             db $AA
 Cont_Dig:         ds 1
 Brillo:           ds 1
 BIN1:             ds 1
@@ -230,10 +230,10 @@ Fin_Base1S:      dB $FF
 
         BSet DDRB,$FF     ;Habilitacion de los LEDs
         BSet DDRJ,$02     ;como comprobacion del timer de 1 segundo
-        BClr PTJ,$02      ;haciendo toogle
+        BSet PTJ,$02      ;haciendo toogle
 
         BSet DDRP,$7F
-        BClr PTP,$0F
+        BSet PTP,$0F      ; Apaga display
 
         BClr MCCTL,#$04   ; Borrar enable
         Movb #$E3,MCCTL   ; Habilitar interrupciones module count down con
@@ -274,7 +274,7 @@ Fin_Base1S:      dB $FF
 
         ; Pantalla MUX
         Movb #$01,Cont_Dig
-        Movb #30,Brillo
+        Movb #99,Brillo
 
         ; Pantalla LCD
         Clr Banderas_1
@@ -330,14 +330,14 @@ Timer2mS_Reach0 Jsr Decre_TablaTimers             ; Decrementar timers
 
 Despachador_Tareas
                 BrSet Banderas_2,LCD_OK,NoNewMsg
-                Jsr Tarea_LCD
+                ;Jsr Tarea_LCD
 NoNewMsg        Jsr Decre_TablaTimers
                 Jsr Tarea_Led_Testigo
-                Jsr Tarea_Conversion
+                ;Jsr Tarea_Conversion
                 Jsr Tarea_PantallaMUX
-                Jsr Tarea_TCM
-                Jsr Tarea_LeerPB
-                Jsr Tarea_Teclado
+                ;Jsr Tarea_TCM
+                ;Jsr Tarea_LeerPB
+                ;Jsr Tarea_Teclado
                 Bra Despachador_Tareas
 
 ;******************************************************************************
@@ -598,9 +598,10 @@ GoTo_Disp4      Cmpa #$04
                 BClr PTP,DIG4
                 Movb DSP4,PORTB
                 Bra Inc_Cont_Dig
-GoTo_Leds       BSet PTJ,$02
+GoTo_Leds       BClr PTJ,$02
                 Movb LEDS,PORTB
-                Movb #$00,Cont_Dig
+                Movb #$01,Cont_Dig
+                Bra Inc_Ticks
 Inc_Cont_Dig    Inc Cont_Dig
 Inc_Ticks       Movw #MaxCountTicks,CounterTicks
                 Movw #PantallaMUX_Est2,EstPres_PantallaMUX
@@ -609,9 +610,11 @@ FIN_PantMUX_1   Rts
 ;=========================== PANTALLA MUX ESTADO 2 =============================
 
 PantallaMUX_Est2:
-                Ldd CounterTicks
-                Cmpb Brillo
-                Bhi FIN_PantMUX_2
+                Ldaa #MaxCountTicks
+                Suba Brillo
+                Sex A,D
+                Cpd CounterTicks
+		Bls FIN_PantMUX_2
                 BSet PTP,$0F
                 BSet PTJ,$02
                 Movw #PantallaMUX_Est1,EstPres_PantallaMUX
