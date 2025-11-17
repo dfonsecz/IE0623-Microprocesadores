@@ -61,15 +61,15 @@ Num_Array:        ds 5       ; Array donde guardar valores ingresados por el
                           ORG $1020
 EstPres_PantallaMUX:    ds 2 ; Variable para guardar estado de tarea de pantalla
                              ; multiplexada
-DSP1:             db $06
-DSP2:             db $5B
-DSP3:             db $4F
-DSP4:             db $66
-LEDS:             db $AA
+DSP1:             ds 1
+DSP2:             ds 1
+DSP3:             ds 1
+DSP4:             ds 1
+LEDS:             ds 1
 Cont_Dig:         ds 1
 Brillo:           ds 1
-BIN1:             ds 1
-BIN2:             ds 1
+BIN1:             db 34
+BIN2:             db 12
 BCD:              ds 1
 Cont_BCD:         ds 1
 BCD1:             ds 1
@@ -256,8 +256,8 @@ Fin_Base1S:      dB $FF
         Movb #tTimerLDTst,TimerLDTst  ;inicia timer parpadeo led testigo
         Movb #0,Timer_LP
 
-        Movb SegundosTCM,BIN1
-        Movb MinutosTCM,BIN2
+        ;Movb SegundosTCM,BIN1
+        ;Movb MinutosTCM,BIN2
 
         ; Inicializacion de estados de maquinas de estado
         Movw #TareaLDTst_Est1,EstPres_LDTst
@@ -333,7 +333,7 @@ Despachador_Tareas
                 ;Jsr Tarea_LCD
 NoNewMsg        Jsr Decre_TablaTimers
                 Jsr Tarea_Led_Testigo
-                ;Jsr Tarea_Conversion
+                Jsr Tarea_Conversion
                 Jsr Tarea_PantallaMUX
                 ;Jsr Tarea_TCM
                 ;Jsr Tarea_LeerPB
@@ -373,11 +373,11 @@ BCD_7Seg:
                 Lsra
                 Lsra
                 Ldab A,X                          ; Cargar patron de segmento
-                Stab Dsp1                         ; Guardar en DISP1
+                Stab DSP1                         ; Guardar en DISP1
                 Ldaa BCD2
                 Anda #$0F                         ; Obtener nibble bajo de BCD2
                 Ldab A,X                          ; Cargar patron de segmento
-                Stab Dsp2                         ; Guardar en DISP2
+                Stab DSP2                         ; Guardar en DISP2
                 Ldaa BCD1
                 Anda #$F0                         ; Obtener nibble alto de BCD1
                 Lsra                              ; y desplazar a la parte baja
@@ -385,11 +385,11 @@ BCD_7Seg:
                 Lsra
                 Lsra
                 Ldab A,X                          ; Cargar patron de segmento
-                Stab Dsp3                         ; Guardar en DISP3
+                Stab DSP3                         ; Guardar en DISP3
                 Ldaa BCD1
                 Anda #$0F                         ; Obtener nibble bajo de BCD1
                 Ldab A,X                          ; Cargar patron de segmento
-                Stab Dsp4                         ; Guardar en DISP4
+                Stab DSP4                         ; Guardar en DISP4
 FIN_BCD7_Seg    Rts
 
 ;================================= BIN BCD MUXP ================================
