@@ -21,7 +21,7 @@ EOM:            EQU $FF
 
 Puntero:        ds 2
 
-MSG:            FCC "Hola mundo"
+MSG:            FCC "Probando"
                 db EOM
 
 ;*******************************************************************************
@@ -32,7 +32,7 @@ MSG:            FCC "Hola mundo"
 Com_Serie
                 Movw #39,SC1BDH
                 Movb #$00,SC1CR1
-                Movb #$88,SC1CR2
+                Movb #$48,SC1CR2; $88
                 
                 Ldaa SC1SR1
                 Movb #$00,SC1DRL
