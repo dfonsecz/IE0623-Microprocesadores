@@ -330,13 +330,13 @@ Timer2mS_Reach0 Jsr Decre_TablaTimers             ; Decrementar timers
 
 Despachador_Tareas
                 BrSet Banderas_2,LCD_OK,NoNewMsg
-                ;Jsr Tarea_LCD
+                Jsr Tarea_LCD
 NoNewMsg        Jsr Decre_TablaTimers
                 Jsr Tarea_Led_Testigo
                 Jsr Tarea_Conversion
                 Jsr Tarea_PantallaMUX
                 Jsr Tarea_TCM
-                ;Jsr Tarea_LeerPB
+                Jsr Tarea_LeerPB
                 ;Jsr Tarea_Teclado
                 Bra Despachador_Tareas
 
