@@ -68,8 +68,8 @@ DSP4:             ds 1
 LEDS:             ds 1
 Cont_Dig:         ds 1
 Brillo:           ds 1
-BIN1:             db 34
-BIN2:             db 12
+BIN1:             ds 1
+BIN2:             ds 1
 BCD:              ds 1
 Cont_BCD:         ds 1
 BCD1:             ds 1
@@ -256,8 +256,8 @@ Fin_Base1S:      dB $FF
         Movb #tTimerLDTst,TimerLDTst  ;inicia timer parpadeo led testigo
         Movb #0,Timer_LP
 
-        ;Movb SegundosTCM,BIN1
-        ;Movb MinutosTCM,BIN2
+        Movb SegundosTCM,BIN1
+        Movb MinutosTCM,BIN2
 
         ; Inicializacion de estados de maquinas de estado
         Movw #TareaLDTst_Est1,EstPres_LDTst
@@ -335,7 +335,7 @@ NoNewMsg        Jsr Decre_TablaTimers
                 Jsr Tarea_Led_Testigo
                 Jsr Tarea_Conversion
                 Jsr Tarea_PantallaMUX
-                ;Jsr Tarea_TCM
+                Jsr Tarea_TCM
                 ;Jsr Tarea_LeerPB
                 ;Jsr Tarea_Teclado
                 Bra Despachador_Tareas
