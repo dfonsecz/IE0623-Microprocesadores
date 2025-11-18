@@ -278,6 +278,10 @@ Fin_Base1S:      dB $FF
 
         ; Pantalla LCD
         Clr Banderas_1
+        
+        ; Display 7 seg
+        Movb #tMinutosTCM,BIN2
+	Movb #tSegundosTCM,BIN1
 
         ; Teclado
         Movb #$FF,Tecla
@@ -330,7 +334,7 @@ Timer2mS_Reach0 Jsr Decre_TablaTimers             ; Decrementar timers
 
 Despachador_Tareas
                 BrSet Banderas_2,LCD_OK,NoNewMsg
-                Jsr Tarea_LCD
+                ;Jsr Tarea_LCD
 NoNewMsg        Jsr Decre_TablaTimers
                 Jsr Tarea_Led_Testigo
                 Jsr Tarea_Conversion
@@ -496,8 +500,8 @@ TareaTCM_Est2   Movb SegundosTCM,BIN1
                 Bne FIN_TareaTCM_2
                 Tst MinutosTCM
                 Bne Dec_Minutos
-                Movb tSegundosTCM,BIN1
-                Movb tMinutosTCM,BIN2
+                Movb #tSegundosTCM,BIN1
+                Movb #tMinutosTCM,BIN2
                 Movw #MSG1_P1,Msg_L1
                 Movw #MSG1_P2,Msg_L2
                 Movb #InicioLD,LEDS
@@ -614,7 +618,7 @@ PantallaMUX_Est2:
                 Suba Brillo
                 Sex A,D
                 Cpd CounterTicks
-		Bls FIN_PantMUX_2
+                Bls FIN_PantMUX_2
                 BSet PTP,$0F
                 BSet PTJ,$02
                 Movw #PantallaMUX_Est1,EstPres_PantallaMUX
