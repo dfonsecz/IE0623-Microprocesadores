@@ -169,13 +169,13 @@ Teclas:           db $01,$02,$03
 
 ;================================== MENSAJES ===================================
 
-MSG1_P1:          fcc "   ESCUELA DE   "
+MSG1_P1:          fcc "  ESCUELA DE     "
                   db $FF
-MSG1_P2:          fcc " ING. ELECTRICA "
+MSG1_P2:          fcc " ING. ELECTRICA  "
                   db $FF
-MSG2_P1:          fcc " uPROCESADORES  "
+MSG2_P1:          fcc " uPROCESADORES   "
                   db $FF
-MSG2_P2:          fcc "    TAREA #5    "
+MSG2_P2:          fcc "    TAREA #5     "
                   db $FF
 
 ;===============================================================================
@@ -304,6 +304,8 @@ Fin_Base1S:      dB $FF
 ;******************************************************************************
 
 Init_LCD        ; Inicializacion de Pantalla LCD (otros)
+                Movw #MSG1_P1,Msg_L1
+                Movw #MSG1_P2,Msg_L2
                 Movb #$FF,DDRK                    ; Inicializar como salida
                 Movw #IniDsp,Punt_LCD             ; Cargar direccion de comandos
                 BClr Banderas_2,RS                ; Inicializar banderas en 0
@@ -334,7 +336,7 @@ Timer2mS_Reach0 Jsr Decre_TablaTimers             ; Decrementar timers
 
 Despachador_Tareas
                 BrSet Banderas_2,LCD_OK,NoNewMsg
-                ;Jsr Tarea_LCD
+                Jsr Tarea_LCD
 NoNewMsg        Jsr Decre_TablaTimers
                 Jsr Tarea_Led_Testigo
                 Jsr Tarea_Conversion
@@ -488,6 +490,7 @@ TareaTCM_Est1   BrClr Banderas_1,ShortP1,FIN_TareaTCM_1
                 Movb #tSegundosTCM,SegundosTCM
                 Movw #MSG2_P1,Msg_L1
                 Movw #MSG2_P2,Msg_L2
+                BClr Banderas_2,LCD_OK
                 Movw #TareaTCM_Est2,EstPres_TCM
 FIN_TareaTCM_1  Rts
 
@@ -504,6 +507,7 @@ TareaTCM_Est2   Movb SegundosTCM,BIN1
                 Movb #tMinutosTCM,BIN2
                 Movw #MSG1_P1,Msg_L1
                 Movw #MSG1_P2,Msg_L2
+                BClr Banderas_2,LCD_OK
                 Movb #InicioLD,LEDS
                 Movw #TareaTCM_Est1,EstPres_TCM
                 Bra FIN_TareaTCM_2
