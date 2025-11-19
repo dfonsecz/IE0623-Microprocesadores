@@ -169,11 +169,11 @@ Teclas:           db $01,$02,$03
 
 ;================================== MENSAJES ===================================
 
-MSG1_P1:          fcc "  ESCUELA DE     "
+MSG1_P1:          fcc "    ESCUELA DE   "
                   db $FF
 MSG1_P2:          fcc " ING. ELECTRICA  "
                   db $FF
-MSG2_P1:          fcc " uPROCESADORES   "
+MSG2_P1:          fcc "  uPROCESADORES  "
                   db $FF
 MSG2_P2:          fcc "    TAREA #5     "
                   db $FF
@@ -281,7 +281,7 @@ Fin_Base1S:      dB $FF
         
         ; Display 7 seg
         Movb #tMinutosTCM,BIN2
-	Movb #tSegundosTCM,BIN1
+        Movb #tSegundosTCM,BIN1
 
         ; Teclado
         Movb #$FF,Tecla
@@ -343,7 +343,7 @@ NoNewMsg        Jsr Decre_TablaTimers
                 Jsr Tarea_PantallaMUX
                 Jsr Tarea_TCM
                 Jsr Tarea_LeerPB
-                ;Jsr Tarea_Teclado
+                Jsr Tarea_Teclado
                 Bra Despachador_Tareas
 
 ;******************************************************************************
