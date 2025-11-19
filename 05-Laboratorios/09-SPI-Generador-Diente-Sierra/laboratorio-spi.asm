@@ -55,14 +55,14 @@ Retardo         Dbne A,Retardo
                 Cli
                 Movb #32,Comparador
                 Movb #$01,LEDs
-                Movb #$00,CONT_DA ;word
+                Movw #$00,CONT_DA
                 Bra *
                 
 ;*******************************************************************************
 ;                  SUBRUTINA DE ATENCION A INTERRUPCION RTI
 ;*******************************************************************************
 
-RTI_ISR        ; Movb #$FF,PORTB
+RTI_ISR         ;Movb #$FF,PORTB
                 Ldx CONT_DA
                 Inx
                 Stx CONT_DA
