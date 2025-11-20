@@ -117,15 +117,34 @@ Segment:          db $3F                ; "0"
 
 ;================================== MENSAJES ===================================
 
-Msg_Operacion:    fcc "   UNIVERSIDAD DE COSTA RICA   "
+CR:               EQU $0D
+LF:               EQU $0A
+
+Msg_Operacion:    db CR,CR,LF
+		  fcc "                           "
+		  fcc "UNIVERSIDAD DE COSTA RICA"
+                  db CR,CR,LF
+                  fcc "                        "
                   fcc "ESCUELA DE INGENIERIA ELECTRICA"
-                  fcc "       MICROPROCESADORES       "
-                  fcc "             IE0623            "
+                  db CR,CR,LF
+                  fcc "                               "
+                  fcc "MICROPROCESADORES"
+                  db CR,CR,LF
+                  fcc "                                    "
+                  fcc "IE0623"
+                  db CR,CR,LF
+                  db CR,CR,LF
+                  fcc "              "
                   fcc "VOLUMEN CALCULADO: "
+                  db CR,CR,LF
                   db $FF
-Msg_Alarma:       fcc "Alarma: El Nivel esta Bajo"
+Msg_Alarma:       db CR,CR,LF
+                  db CR,CR,LF
+		  fcc "Alarma: El Nivel esta Bajo"
                   db $FF
-Msg_Vaciado:      fcc "Vaciando Tanque, Bomba Apagada"
+Msg_Vaciado:      db CR,CR,LF
+                  db CR,CR,LF
+		  fcc "Vaciando Tanque, Bomba Apagada"
                   db $FF
 Msg_En_Blanco:    fcc " "
                   db $FF
@@ -199,8 +218,8 @@ Fin_Base1S:     dB $FF
         Movw #tTimer10mS,Timer10mS         ;Inicia los timers de bases de tiempo
         Movw #tTimer100mS,Timer100mS
         Movw #tTimer1S,Timer1S
-
         Movb #tTimerLDTst,TimerLDTst  ;inicia timer parpadeo led testigo
+        Movb #tTimerTerminal,TimerTerminal
 
         ; Inicializacion de estados de maquinas de estado
         Movw #TareaLDTst_Est1,EstPres_LDTst
@@ -420,20 +439,21 @@ FIN_ATD_1       Rts
 ;============================= TAREA ATD ESTADO 2 ==============================
 
 TareaATD_Est2:
-               BrClr ATD0STAT0,$80,FIN_ATD_2
-               Jsr Calcula
-               Ldaa Volumen
-               Cmpa #14
-               Bhi PrevState_ATD
-               BSet Banderas_1,MostrarAlarma
-               Cmpa #30
-               Bhs PrevState_ATD
-               BClr Banderas_1,MostrarAlarma
-               Cmpa #82
-               Bls PrevState_ATD
-               BSet Banderas_1,Vaciar
-PrevState_ATD  Movw #TareaATD_Est1,EstPres_ATD
-FIN_ATD_2      Rts
+                BrClr ATD0STAT0,$80,FIN_ATD_2
+                Jsr Calcula
+                Ldaa Volumen
+                Cmpa #14
+                Bhi Alarma_ON
+                BSet Banderas_1,MostrarAlarma
+                Bra Alarma_OFF
+Alarma_ON       Cmpa #30
+                Bls Alarma_OFF
+                BClr Banderas_1,MostrarAlarma
+Alarma_OFF      Cmpa #82
+                Bls PrevState_ATD
+                BSet Banderas_1,Vaciar
+PrevState_ATD   Movw #TareaATD_Est1,EstPres_ATD
+FIN_ATD_2       Rts
 
 ;******************************************************************************
 ;                                TAREA TERMINAL
@@ -449,15 +469,16 @@ Tarea_Terminal:
 Terminal_Est1:
                 Tst TimerTerminal
                 Bne FIN_Terminal_1
-                Ldaa SC1SR1
-                Ldx Puntero_Msg
+                BrClr SC1SR1,$80,FIN_Terminal_1
+		Ldx Puntero_Msg
                 Ldaa 1,X+
                 Cmpa #$FF
                 Beq NextState_Term
                 Staa SC1DRL
                 Stx Puntero_Msg
+                Bra FIN_Terminal_1
 NextState_Term  BClr SC1CR2,$08
-                Movw #Terminal_Est2,EstPres_Terminal
+		Movw #Terminal_Est2,EstPres_Terminal
 FIN_Terminal_1  Rts
 
 ;=========================== TAREA TERMINAL ESTADO 2 ===========================
@@ -467,22 +488,22 @@ Terminal_Est2:
                 Movw #Msg_Alarma,Puntero_Msg
                 BSet SC1CR2,$08
                 Movw #Terminal_Est3,EstPres_Terminal
-CheckVaciar     BrSet Banderas_1,Vaciar,Reset_Msg_Op
+                Bra FIN_Terminal_2
+CheckVaciar     BrClr Banderas_1,Vaciar,Cargar_Msg_Op
                 Tst Cont_Seg
+                Bne FIN_Terminal_2
                 Movw #Msg_Vaciado,Puntero_Msg
                 BSet SC1CR2,$08
                 Movw #Terminal_Est3,EstPres_Terminal
                 Bra FIN_Terminal_2
-Dec_ContSeg     Dec Cont_Seg
-                Bra FIN_Terminal_2
-Reset_Msg_Op    Movw #Msg_Operacion,Puntero_Msg
+Cargar_Msg_Op   Movw #Msg_Operacion,Puntero_Msg
                 Movw #Terminal_Est1,EstPres_Terminal
 FIN_Terminal_2  Rts
 
 ;=========================== TAREA TERMINAL ESTADO 3 ===========================
 
 Terminal_Est3:
-                Ldaa SC1SR1
+                BrClr SC1SR1,$80,FIN_Terminal_3
                 Ldx Puntero_Msg
                 Ldaa 1,X+
                 Cmpa #$FF
@@ -490,7 +511,7 @@ Terminal_Est3:
                 Staa SC1DRL
                 Stx Puntero_Msg
                 Bra FIN_Terminal_3
-PrevState_Term3 BClr SC1CR2,$08
+PrevState_Term3 ;BClr SC1CR2,$08
                 Movb #tTimerTerminal,TimerTerminal
                 Movw #Terminal_Est1,EstPres_Terminal
 FIN_Terminal_3  Rts
