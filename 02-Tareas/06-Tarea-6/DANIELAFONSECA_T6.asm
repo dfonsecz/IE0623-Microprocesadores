@@ -1,11 +1,10 @@
-
- ;******************************************************************************
- ;                       TAREA 6 - Control ON/OFF Nivel
- ;******************************************************************************
+;******************************************************************************
+;                       TAREA 6 - Control ON/OFF Nivel
+;******************************************************************************
 #include registers.inc
- ;******************************************************************************
- ;                 RELOCALIZACION DE VECTOR DE INTERRUPCION
- ;******************************************************************************
+;******************************************************************************
+;                 RELOCALIZACION DE VECTOR DE INTERRUPCION
+;******************************************************************************
                                 Org $3E4A
                                 dw Maquina_Tiempos
 ;******************************************************************************
@@ -73,6 +72,7 @@ Nivel:            ds 1
 NivelProm:        ds 1
 Volumen:          ds 1
 Puntero_Msg:      ds 2
+Cont_Seg:         ds 1
 
 ;=================================== BANDERAS ==================================
 
@@ -94,7 +94,7 @@ LD_Blue:          EQU $40
 ;============================== TAREA LED TESTIGO ==============================
 
                   ORG $1080
-EstPres_LDTst     ds 1
+EstPres_LDTst     ds 2
 
 ;================================== GENERALES ==================================
 
@@ -207,11 +207,29 @@ Fin_Base1S:     dB $FF
         Movw #TareaLCD_Est1,EstPres_TareaLCD
         Movw #TareaSendLCD_Est1,EstPres_SendLCD
         Movw #TareaATD_Est1,EstPres_ATD
-        ;Movw #Tarea_Terminal,EstPres_Terminal
+        Movw #Terminal_Est1,EstPres_Terminal
+        
+        ; Inicializacion de ATD
+        Movb #$C0,ATD0CTL2
+        Ldaa #160
+InitATD Dbne A,InitATD
+        Movb #$20,ATD0CTL3
+        Movb #$10,ATD0CTL4
+        
+        ; Inicializacion de SCI
+        Movw #39,SC1BDH
+        Movb #$00,SC1CR1
+        Movb #$08,SC1CR2
+        Ldaa SC1SR1                     ; Dummy read
+        Movb #$00,SC1DRL
 
         ; Inicializacion de Pantalla LCD (timers)
         Movw #tTimer260uS,Timer260uS
         Movw #tTimer40uS,Timer40uS
+        
+        ; Terminal
+        Movw #Msg_Operacion,Puntero_Msg
+        Clr Cont_Seg
 
         ; Pantalla LCD
         Clr Banderas_1
@@ -219,6 +237,9 @@ Fin_Base1S:     dB $FF
         Lds #$3BFF
         Cli
         Clr Banderas_1
+        
+        Ldaa SC1SR1
+        Movb #$0C,SC1DRL
 
         Jsr Init_LCD
         Bra Despachador_Tareas
@@ -264,6 +285,7 @@ Despachador_Tareas
 NoNewMsg        Jsr Decre_TablaTimers
                 Jsr Tarea_Led_Testigo
                 Jsr Tarea_ATD
+                Jsr Tarea_Terminal
                 Bra Despachador_Tareas
 
 ;******************************************************************************
@@ -390,6 +412,7 @@ Tarea_ATD:
 TareaATD_Est1:
                 Tst TimerATD
                 Bne FIN_ATD_1
+                Movb #$87,ATD0CTL5
                 Movb #tTimerATD,TimerATD
                 Movw #TareaATD_Est2,EstPres_ATD
 FIN_ATD_1       Rts
@@ -397,7 +420,7 @@ FIN_ATD_1       Rts
 ;============================= TAREA ATD ESTADO 2 ==============================
 
 TareaATD_Est2:
-               BrSet ATD0STAT0,$80,FIN_ATD_2
+               BrClr ATD0STAT0,$80,FIN_ATD_2
                Jsr Calcula
                Ldaa Volumen
                Cmpa #14
@@ -433,14 +456,44 @@ Terminal_Est1:
                 Beq NextState_Term
                 Staa SC1DRL
                 Stx Puntero_Msg
-NextState_Term  ;TE = 0
+NextState_Term  BClr SC1CR2,$08
                 Movw #Terminal_Est2,EstPres_Terminal
-FIN_Terminal_1
+FIN_Terminal_1  Rts
 
 ;=========================== TAREA TERMINAL ESTADO 2 ===========================
 
 Terminal_Est2:
-FIN_Terminal_2
+                BrClr Banderas_1,MostrarAlarma,CheckVaciar
+                Movw #Msg_Alarma,Puntero_Msg
+                BSet SC1CR2,$08
+                Movw #Terminal_Est3,EstPres_Terminal
+CheckVaciar     BrSet Banderas_1,Vaciar,Reset_Msg_Op
+                Tst Cont_Seg
+                Movw #Msg_Vaciado,Puntero_Msg
+                BSet SC1CR2,$08
+                Movw #Terminal_Est3,EstPres_Terminal
+                Bra FIN_Terminal_2
+Dec_ContSeg     Dec Cont_Seg
+                Bra FIN_Terminal_2
+Reset_Msg_Op    Movw #Msg_Operacion,Puntero_Msg
+                Movw #Terminal_Est1,EstPres_Terminal
+FIN_Terminal_2  Rts
+
+;=========================== TAREA TERMINAL ESTADO 3 ===========================
+
+Terminal_Est3:
+                Ldaa SC1SR1
+                Ldx Puntero_Msg
+                Ldaa 1,X+
+                Cmpa #$FF
+                Beq PrevState_Term3
+                Staa SC1DRL
+                Stx Puntero_Msg
+                Bra FIN_Terminal_3
+PrevState_Term3 BClr SC1CR2,$08
+                Movb #tTimerTerminal,TimerTerminal
+                Movw #Terminal_Est1,EstPres_Terminal
+FIN_Terminal_3  Rts
 
 ;******************************************************************************
 ;                                  TAREA LCD
@@ -500,14 +553,13 @@ Calcula:
                 Lsrd
                 Lsrd
                 Std NivelProm
+                Ldy #20
+                Emul
                 Ldx #1023
-                IDiv                    ; (NivelProm)/1023
-                Tfr J,A                 ; J[7:0] => A
-                Staa Nivel              ; Nivel Preliminar = (NivelProm)/1023
-                Ldab #20
-                Mul                     ; Nivel = (Nivel Preliminar)*20 m
-                Stab Nivel
-                Ldaa #7                 ; Aproximado de Pi*(Radio**2)
+                Idiv
+                Tfr X,A
+                Staa Nivel
+                Ldab #7                 ; Aproximado de Pi*(Radio**2)
                 Mul                     ; Volumen = Pi*(Radio**2)*(Nivel)
                 Stab Volumen
 FIN_Calcula     Rts
