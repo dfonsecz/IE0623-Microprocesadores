@@ -498,9 +498,9 @@ CheckVaciar_2   BrClr Banderas_1,Vaciar,Cargar_Msg_Op
                 BSet SC1CR2,$08
                 Movw #Terminal_Est3,EstPres_Terminal
                 Bra FIN_Terminal_2
-Cargar_Msg_Op   BSet SC1CR2,$08
-		Movw #Msg_Operacion,Puntero_Msg
-                Movw #Terminal_Est1,EstPres_Terminal
+Cargar_Msg_Op   ;BSet SC1CR2,$08
+		;Movw #Msg_Operacion,Puntero_Msg
+                ;Movw #Terminal_Est1,EstPres_Terminal
 FIN_Terminal_2  Rts
 
 ;=========================== TAREA TERMINAL ESTADO 3 ===========================
