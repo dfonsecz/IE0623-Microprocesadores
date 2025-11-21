@@ -451,8 +451,10 @@ AlarmaAct	BSet Banderas_1,MostrarAlarma
                 Bra CheckVaciar_1
 AlarmaDes	BClr Banderas_1,MostrarAlarma
 CheckVaciar_1	Cmpa #82
-                Bls PrevState_ATD
+                Bls VaciarOFF
                 BSet Banderas_1,Vaciar
+                Bra PrevState_ATD
+VaciarOFF       BClr Banderas_1,Vaciar
 PrevState_ATD	Movw #TareaATD_Est1,EstPres_ATD
 FIN_ATD_2 	Rts
 
@@ -500,7 +502,7 @@ CheckVaciar_2   BrClr Banderas_1,Vaciar,Cargar_Msg_Op
                 Bra FIN_Terminal_2
 Cargar_Msg_Op   ;BSet SC1CR2,$08
 		;Movw #Msg_Operacion,Puntero_Msg
-                ;Movw #Terminal_Est1,EstPres_Terminal
+                Movw #Terminal_Est1,EstPres_Terminal
 FIN_Terminal_2  Rts
 
 ;=========================== TAREA TERMINAL ESTADO 3 ===========================
