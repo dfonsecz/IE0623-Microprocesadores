@@ -516,7 +516,7 @@ Terminal_Est3:
                 Staa SC1DRL
                 Stx Puntero_Msg
                 Bra FIN_Terminal_3
-PrevState_Term3 BClr SC1CR2,$08
+PrevState_Term3 ;BClr SC1CR2,$08
                 Movb #tTimerTerminal,TimerTerminal
                 Movw #Msg_Operacion,Puntero_Msg
                 Movw #Terminal_Est1,EstPres_Terminal
