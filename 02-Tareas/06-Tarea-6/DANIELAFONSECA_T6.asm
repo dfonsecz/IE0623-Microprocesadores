@@ -140,14 +140,15 @@ Msg_Operacion:    db CR,CR,LF
                   db CR,CR,LF
                   fcc "              "
                   fcc "VOLUMEN CALCULADO: "
-                  db CR,CR,LF
                   db $FF
 Msg_Alarma:       db CR,CR,LF
                   db CR,CR,LF
+                  fcc "              "
                   fcc "Alarma: El Nivel esta Bajo"
                   db $FF
 Msg_Vaciado:      db CR,CR,LF
                   db CR,CR,LF
+                  fcc "              "
                   fcc "Vaciando Tanque, Bomba Apagada"
                   db $FF
 Msg_En_Blanco:    fcc " "
@@ -488,13 +489,16 @@ Terminal_Est1:
 NextState_Term  Ldaa Volumen
 		Jsr BIN_ASCII
                 Ldx #ASCIIChars
-PrintChar       Ldaa 1,X+
+                Ldy  #3              ; 3 caracteres a imprimir
+PrintChar	BrClr SC1SR1,$80,PrintChar   ; esperar TDRE = 1
+                Ldaa 0,X                      ; cargar carácter actual
                 Staa SC1DRL
-                Cpx #3
-                Bne PrintChar
-		BClr SC1CR2,$08
+                Inx
+                Dey
+                Bne PrintChard
                 Movb #tTimerTerminal,TimerTerminal
                 Movw #Terminal_Est2,EstPres_Terminal
+                Rts
 FIN_Terminal_1  Rts
 
 ;=========================== TAREA TERMINAL ESTADO 2 ===========================
@@ -612,8 +616,8 @@ BIN_ASCII:
                 Movb #0,BCD_H
                 Movb #0,BCD_L
 LoopBINASCII    Lsla
-                Lsl BCD_H
-                Lsl BCD_L
+                Rol BCD_L
+                Rol BCD_H
                 Psha
                 Ldaa BCD_L
                 Anda #$0F
@@ -632,28 +636,25 @@ Store_High      Pulb
                 Pula
                 Dbne Y,LoopBINASCII
                 Lsla
-                Lsl BCD_L
-                Lsl BCD_H
+                Rol BCD_L
+                Rol BCD_H
                 Ldx #ASCIIChars
-                Ldab #0
                 Ldaa BCD_H
                 Anda #$0F
-                Adda #48
-                Staa B,X
-                Inca
+                Adda #$30
+                Staa 0,X
                 Ldaa BCD_L
                 Anda #$F0
                 Lsra
                 Lsra
                 Lsra
 		Lsra
-		Adda #48
-                Staa B,X
-                Inca
+		Adda #$30
+                Staa 1,X
                 Ldaa BCD_L
                 Anda #$0F
-                Adda #48
-                Staa B,X
+                Adda #$30
+                Staa 2,X
                 Rts
 
 ;******************************************************************************
