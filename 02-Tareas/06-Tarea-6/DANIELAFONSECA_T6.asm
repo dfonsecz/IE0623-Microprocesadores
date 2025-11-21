@@ -74,6 +74,10 @@ Volumen:          ds 1
 Puntero_Msg:      ds 2
 Cont_Seg:         ds 1
 
+BCD_H:            ds 1
+BCD_L:            ds 1
+ASCIIChars:       ds 3
+
 ;=================================== BANDERAS ==================================
 
                   ORG $1070
@@ -473,6 +477,7 @@ Terminal_Est1:
                 Tst TimerTerminal
                 Bne FIN_Terminal_1
                 BrClr SC1SR1,$80,FIN_Terminal_1
+                BSet SC1CR2,$08
                 Ldx Puntero_Msg
                 Ldaa 1,X+
                 Cmpa #$FF
@@ -480,7 +485,14 @@ Terminal_Est1:
                 Staa SC1DRL
                 Stx Puntero_Msg
                 Bra FIN_Terminal_1
-NextState_Term  BClr SC1CR2,$08
+NextState_Term  Ldaa Volumen
+		Jsr BIN_ASCII
+                Ldx #ASCIIChars
+PrintChar       Ldaa 1,X+
+                Staa SC1DRL
+                Cpx #3
+                Bne PrintChar
+		BClr SC1CR2,$08
                 Movb #tTimerTerminal,TimerTerminal
                 Movw #Terminal_Est2,EstPres_Terminal
 FIN_Terminal_1  Rts
@@ -516,8 +528,8 @@ Terminal_Est3:
                 Staa SC1DRL
                 Stx Puntero_Msg
                 Bra FIN_Terminal_3
-PrevState_Term3 ;BClr SC1CR2,$08
-                Movb #tTimerTerminal,TimerTerminal
+PrevState_Term3 BClr SC1CR2,$08
+		Movb #tTimerTerminal,TimerTerminal
                 Movw #Msg_Operacion,Puntero_Msg
                 Movw #Terminal_Est1,EstPres_Terminal
 FIN_Terminal_3  Rts
@@ -590,6 +602,59 @@ Calcula:
                 Mul                     ; Volumen = Pi*(Radio**2)*(Nivel)
                 Stab Volumen
 FIN_Calcula     Rts
+
+;******************************************************************************
+;                                BIN_ASCII
+;******************************************************************************
+
+BIN_ASCII:
+                Ldy #7
+                Movb #0,BCD_H
+                Movb #0,BCD_L
+LoopBINASCII    Lsla
+                Lsl BCD_H
+                Lsl BCD_L
+                Psha
+                Ldaa BCD_L
+                Anda #$0F
+                Cmpa #$05
+                Bcs Store_Low
+                Adda #$03
+Store_Low       Psha
+                Ldaa BCD_L
+                Anda #$F0
+                Cmpa #$50
+                Bcs Store_High
+                Adda #$30
+Store_High      Pulb
+                Aba
+                Staa BCD_L
+                Pula
+                Dbne Y,LoopBINASCII
+                Lsla
+                Lsl BCD_L
+                Lsl BCD_H
+                Ldx #ASCIIChars
+                Ldab #0
+                Ldaa BCD_H
+                Anda #$0F
+                Adda #48
+                Staa B,X
+                Inca
+                Ldaa BCD_L
+                Anda #$F0
+                Lsra
+                Lsra
+                Lsra
+		Lsra
+		Adda #48
+                Staa B,X
+                Inca
+                Ldaa BCD_L
+                Anda #$0F
+                Adda #48
+                Staa B,X
+                Rts
 
 ;******************************************************************************
 ;                       SUBRUTINA DECRE_TABLATIMERS
