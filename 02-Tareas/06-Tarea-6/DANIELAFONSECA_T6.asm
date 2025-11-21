@@ -121,8 +121,8 @@ CR:               EQU $0D
 LF:               EQU $0A
 
 Msg_Operacion:    db CR,CR,LF
-		  fcc "                           "
-		  fcc "UNIVERSIDAD DE COSTA RICA"
+                  fcc "                           "
+                  fcc "UNIVERSIDAD DE COSTA RICA"
                   db CR,CR,LF
                   fcc "                        "
                   fcc "ESCUELA DE INGENIERIA ELECTRICA"
@@ -140,11 +140,11 @@ Msg_Operacion:    db CR,CR,LF
                   db $FF
 Msg_Alarma:       db CR,CR,LF
                   db CR,CR,LF
-		  fcc "Alarma: El Nivel esta Bajo"
+                  fcc "Alarma: El Nivel esta Bajo"
                   db $FF
 Msg_Vaciado:      db CR,CR,LF
                   db CR,CR,LF
-		  fcc "Vaciando Tanque, Bomba Apagada"
+                  fcc "Vaciando Tanque, Bomba Apagada"
                   db $FF
 Msg_En_Blanco:    fcc " "
                   db $FF
@@ -447,16 +447,16 @@ TareaATD_Est2:
                 Cmpa #30
                 Bhi AlarmaDes
                 Bra CheckVaciar_1
-AlarmaAct	BSet Banderas_1,MostrarAlarma
+AlarmaAct       BSet Banderas_1,MostrarAlarma
                 Bra CheckVaciar_1
-AlarmaDes	BClr Banderas_1,MostrarAlarma
-CheckVaciar_1	Cmpa #82
+AlarmaDes       BClr Banderas_1,MostrarAlarma
+CheckVaciar_1   Cmpa #82
                 Bls VaciarOFF
                 BSet Banderas_1,Vaciar
                 Bra PrevState_ATD
 VaciarOFF       BClr Banderas_1,Vaciar
-PrevState_ATD	Movw #TareaATD_Est1,EstPres_ATD
-FIN_ATD_2 	Rts
+PrevState_ATD   Movw #TareaATD_Est1,EstPres_ATD
+FIN_ATD_2       Rts
 
 ;******************************************************************************
 ;                                TAREA TERMINAL
@@ -473,7 +473,7 @@ Terminal_Est1:
                 Tst TimerTerminal
                 Bne FIN_Terminal_1
                 BrClr SC1SR1,$80,FIN_Terminal_1
-		Ldx Puntero_Msg
+                Ldx Puntero_Msg
                 Ldaa 1,X+
                 Cmpa #$FF
                 Beq NextState_Term
@@ -482,7 +482,7 @@ Terminal_Est1:
                 Bra FIN_Terminal_1
 NextState_Term  BClr SC1CR2,$08
                 Movb #tTimerTerminal,TimerTerminal
-		Movw #Terminal_Est2,EstPres_Terminal
+                Movw #Terminal_Est2,EstPres_Terminal
 FIN_Terminal_1  Rts
 
 ;=========================== TAREA TERMINAL ESTADO 2 ===========================
@@ -501,7 +501,7 @@ CheckVaciar_2   BrClr Banderas_1,Vaciar,Cargar_Msg_Op
                 Movw #Terminal_Est3,EstPres_Terminal
                 Bra FIN_Terminal_2
 Cargar_Msg_Op   ;BSet SC1CR2,$08
-		;Movw #Msg_Operacion,Puntero_Msg
+                ;Movw #Msg_Operacion,Puntero_Msg
                 Movw #Terminal_Est1,EstPres_Terminal
 FIN_Terminal_2  Rts
 
@@ -516,8 +516,9 @@ Terminal_Est3:
                 Staa SC1DRL
                 Stx Puntero_Msg
                 Bra FIN_Terminal_3
-PrevState_Term3 ;BClr SC1CR2,$08
+PrevState_Term3 BClr SC1CR2,$08
                 Movb #tTimerTerminal,TimerTerminal
+                Movw #Msg_Operacion,Puntero_Msg
                 Movw #Terminal_Est1,EstPres_Terminal
 FIN_Terminal_3  Rts
 
