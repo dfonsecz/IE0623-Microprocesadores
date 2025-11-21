@@ -443,17 +443,18 @@ TareaATD_Est2:
                 Jsr Calcula
                 Ldaa Volumen
                 Cmpa #14
-                Bhi Alarma_ON
-                BSet Banderas_1,MostrarAlarma
-                Bra Alarma_OFF
-Alarma_ON       Cmpa #30
-                Bls Alarma_OFF
-                BClr Banderas_1,MostrarAlarma
-Alarma_OFF      Cmpa #82
+                Bls AlarmaAct
+                Cmpa #30
+                Bhi AlarmaDes
+                Bra CheckVaciar_1
+AlarmaAct	BSet Banderas_1,MostrarAlarma
+                Bra CheckVaciar_1
+AlarmaDes	BClr Banderas_1,MostrarAlarma
+CheckVaciar_1	Cmpa #82
                 Bls PrevState_ATD
                 BSet Banderas_1,Vaciar
-PrevState_ATD   Movw #TareaATD_Est1,EstPres_ATD
-FIN_ATD_2       Rts
+PrevState_ATD	Movw #TareaATD_Est1,EstPres_ATD
+FIN_ATD_2 	Rts
 
 ;******************************************************************************
 ;                                TAREA TERMINAL
@@ -478,25 +479,27 @@ Terminal_Est1:
                 Stx Puntero_Msg
                 Bra FIN_Terminal_1
 NextState_Term  BClr SC1CR2,$08
+                Movb #tTimerTerminal,TimerTerminal
 		Movw #Terminal_Est2,EstPres_Terminal
 FIN_Terminal_1  Rts
 
 ;=========================== TAREA TERMINAL ESTADO 2 ===========================
 
 Terminal_Est2:
-                BrClr Banderas_1,MostrarAlarma,CheckVaciar
+                BrClr Banderas_1,MostrarAlarma,CheckVaciar_2
                 Movw #Msg_Alarma,Puntero_Msg
                 BSet SC1CR2,$08
                 Movw #Terminal_Est3,EstPres_Terminal
                 Bra FIN_Terminal_2
-CheckVaciar     BrClr Banderas_1,Vaciar,Cargar_Msg_Op
+CheckVaciar_2   BrClr Banderas_1,Vaciar,Cargar_Msg_Op
                 Tst Cont_Seg
                 Bne FIN_Terminal_2
                 Movw #Msg_Vaciado,Puntero_Msg
                 BSet SC1CR2,$08
                 Movw #Terminal_Est3,EstPres_Terminal
                 Bra FIN_Terminal_2
-Cargar_Msg_Op   Movw #Msg_Operacion,Puntero_Msg
+Cargar_Msg_Op   BSet SC1CR2,$08
+		Movw #Msg_Operacion,Puntero_Msg
                 Movw #Terminal_Est1,EstPres_Terminal
 FIN_Terminal_2  Rts
 
