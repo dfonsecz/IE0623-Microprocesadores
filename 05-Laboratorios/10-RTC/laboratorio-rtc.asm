@@ -110,7 +110,7 @@ EstPres_LeerPB1:  ds 2       ; Variable para guardar estado de Leer PB 1
 
 EstPres_RTC:      ds 2       ; Variable para guardar el estado de Tarea RTC
 Index_RTC:        ds 1
-T_Read_RTC:       ds 1
+T_Read_RTC:       ds 7
 
 Dir_WR:           EQU $D0    ; Direccion de escritura de DS1307
 Dir_RD:           EQU $D1    ; Direccion de lectura de DS1307
@@ -176,7 +176,13 @@ Teclas:           db $01,$02,$03
                   db $0B,$00,$0E
 
                   ORG $1120
-T_Write_RTC:
+T_Write_RTC:      db $00
+                  db $00
+                  db $00
+                  db $01
+                  db $18
+                  db $11
+                  db $25
 
 ;================================== MENSAJES ===================================
 
@@ -487,23 +493,53 @@ Tarea_RTC
 
 ;============================= TAREA RTC ESTADO 1 ==============================
 
-TareaRTC_Est1
-FIN_TareaRTC_1  Rts
+RTC_Est1:
+                BrClr Banderas_1,LongP1,GoToRTC_Est3
+                Movb #$07,Index_RTC             ; Se carga el Index_RTC y se
+                BSet IBCR,MS_SL                 ; envia el start
+                BSet IBCR,TX_RX
+                Movb #Dir_WR,IBDR               ; Se envia la direccion de escritura
+                Movw #RTC_Est2,EstPres_RTC
+                Bra FIN_RTC_1
+GoToRTC_Est3    Movb #tTimerRead_RTC,TimerRead_RTC
+                Movw #RTC_Est1,EstPres_RTC
+FIN_RTC_1  Rts
 
 ;============================= TAREA RTC ESTADO 2 ==============================
 
-TareaRTC_Est2
-FIN_TareaRTC_2  Rts
+RTC_Est2:
+                BrClr IBSR,IBIF,FIN_RTC_2
+                BSet IBSR,IBIF
+                Jsr Write_RTC
+                BrSet Banderas_1,LongP1,FIN_RTC_2
+                Movw #RTC_Est1,EstPres_RTC
+FIN_RTC_2  Rts
 
 ;============================= TAREA RTC ESTADO 3 ==============================
 
-TareaRTC_Est3
-FIN_TareaRTC_3  Rts
+RTC_Est3:
+                Tst TimerRead_RTC
+                Bne FIN_RTC_3
+                Movb #$07,Index_RTC
+                BSet IBCR,TX_RX
+                BSet IBCR,MS_SL
+                Movb #Dir_WR,IBDR
+                Movw #RTC_Est4,EstPres_RTC
+FIN_RTC_3  Rts
 
 ;============================= TAREA RTC ESTADO 4 ==============================
 
-TareaRTC_Est4
-FIN_TareaRTC_4  Rts
+RTC_Est4:
+                BrClr IBSR,IBIF,FIN_RTC_4
+                BSet IBSR,IBIF
+                Jsr Read_RTC
+                Ldaa Index_RTC
+                Cmpa #$07
+                Bne FIN_RTC_4
+                Movb 1,T_Read_RTC,BCD1
+                Movb 2,T_Read_RTC,BCD2
+                Movw #RTC_Est1,EstPres_RTC
+FIN_RTC_4  Rts
 
 ;******************************************************************************
 ;                               TAREA LEER PB
@@ -843,6 +879,38 @@ Borrar_Tecl_2   Movb #$FF,Tecla                 ; Limpiar valor de Tecla
 Escribir_Patron BSet Patron,$0F                 ; Patron.3:Patron.0 = $F
                 Movb Patron,Tecla               ; Pasar Patron a Tecla
 FIN_Leer_Tecl   Rts
+
+;******************************************************************************
+;                            SUBRUTINA READ RTC
+;******************************************************************************
+
+Read_RTC:
+                Ldaa Index_RTC
+                Cmpa #$07
+                
+FIN_Read_RTC
+
+;******************************************************************************
+;                            SUBRUTINA WRITE RTC
+;******************************************************************************
+
+Write_RTC:
+                Ldaa Index_RTC
+                Cmpa #$07
+                Beq Reset_Index
+                Ldx T_Write_RTC
+                Ldaa Index_RTC
+                Movb A,X,IBDR
+                Cmpa #$06
+                Bne Inc_IndexRTC
+                BClr IBCR,MS_SL
+                BClr Banderas_1,LongP1
+                Bra FIN_Write_RTC
+Inc_IndexRTC    Inc Index_RTC
+                Bra FIN_Write_RTC
+Reset_Index     Movb #Dir_Seg,IBDR
+                Clr Index_RTC
+FIN_Write_RTC
 
 ;******************************************************************************
 ;                        SUBRUTINA BORRAR NUM ARRAY
