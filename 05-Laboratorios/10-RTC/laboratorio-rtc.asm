@@ -23,17 +23,20 @@ tTimer1S:         EQU 50000  ;Base de tiempo de 1 segundo (20uS x 50000)
 tTimer40uS:       EQU 2      ; Tiempo de timer de 40 uS (20uS x 2)
 tTimer260uS:      EQU 13     ; Tiempo de timer de 260 uS (20uS x 13)
 tTimer2ms:        EQU 100    ; Tiempo de timer de 2 mS (20uS x 100)
-tSupRebPB:        EQU 10     ; Tiempo de supresion de rebotes x 1 mS (PB)
+tSupRebPB1:       EQU 10     ; Tiempo de supresion de rebotes x 1 mS (PB)
+tSupRebPB2:       EQU 10     ; Tiempo de supresion de rebotes x 1 mS (PB)
 tSupRebTCL:       EQU 10     ; Tiempo de supresion de rebotes x 1 mS (Teclado)
-tShortP:          EQU 25     ; Tiempo minimo ShortPress x 10 mS
-tLongP:           EQU 3      ; Tiempo minimo LongPress en segundos
+tShortP1:         EQU 25     ; Tiempo minimo ShortPress x 10 mS
+tShortP2:         EQU 25     ; Tiempo minimo ShortPress x 10 mS
+tLongP1:          EQU 3      ; Tiempo minimo LongPress en segundos
+tLongP2:          EQU 3      ; Tiempo minimo LongPress en segundos
 tTimerLDTst:      EQU 5      ; Tiempo de parpadeo de LED testigo x 100 mS
 tTimerDigito:     EQU 2
 tTimerRead_RTC:   EQU 10     ; Timer de 1 segundo para leer RTC
 
 PortPB:           EQU PTIH   ; Se define el puerto donde se ubica el PB
-MaskPB0:          EQU $01    ; Se define el bit 0 del PB en el puerto
 MaskPB1:          EQU $08    ; Se define el bit 3 del PB en el puerto
+MaskPB2:          EQU $01    ; Se define el bit 0 del PB en el puerto
 
 ;=============================== TAREA TECLADO =================================
 
@@ -106,6 +109,10 @@ ADD_L2:           EQU $C0
 
 EstPres_LeerPB1:  ds 2       ; Variable para guardar estado de Leer PB 1
 
+;================================ TAREA LEER PB2 ===============================
+
+EstPres_LeerPB2:  ds 2       ; Variable para guardar estado de Leer PB 2
+
 ;================================== TAREA RTC ==================================
 
 EstPres_RTC:      ds 2       ; Variable para guardar el estado de Tarea RTC
@@ -128,10 +135,10 @@ IBIF:             EQU $02    ; Mascara del bit IBIF en IBSR
 
                   ORG $1070
 Banderas_1:       ds 1
-ShortP0:          EQU $01
-LongP0:           EQU $02
-ShortP1:          EQU $04
-LongP1:           EQU $08
+ShortP1:          EQU $01
+LongP1:           EQU $02
+ShortP2:          EQU $04
+LongP2:           EQU $08
 ArrayOK:          EQU $10
 
 Banderas_2:       ds 1
@@ -177,10 +184,10 @@ Teclas:           db $01,$02,$03
 
                   ORG $1120
 T_Write_RTC:      db $00
-                  db $00
-                  db $00
-                  db $01
-                  db $18
+                  db $50
+                  db $11
+                  db $05
+                  db $28
                   db $11
                   db $25
 
@@ -213,7 +220,8 @@ Fin_BaseT       dW $FFFF
 
 Tabla_Timers_Base1mS
 
-Timer_RebPB:    ds 1
+Timer_RebPB1:   ds 1
+Timer_RebPB2:   ds 1
 Timer_RebTCL:   ds 1
 Timer_Digito:   ds 1
 Timer2mS:       ds 1
@@ -222,7 +230,8 @@ Fin_Base1mS:    dB $FF
 
 Tabla_Timers_Base10mS
 
-Timer_SHP:      ds 1
+Timer_SHP1:     ds 1
+Timer_SHP2:     ds 1
 
 Fin_Base10ms:   dB $FF
 
@@ -231,13 +240,14 @@ Tabla_Timers_Base100mS
 Timer1_100mS:   ds 1
 TimerRead_RTC:  ds 1
 
-TimerLDTst:      ds 1
+TimerLDTst:     ds 1
 Fin_Base100mS:  dB $FF
 
 Tabla_Timers_Base1S
 
-Timer_LP:        ds 1
-SegundosTCM:     ds 1
+Timer_LP1:      ds 1
+Timer_LP2:      ds 1
+SegundosTCM:    ds 1
 
 Fin_Base1S:      dB $FF
 
@@ -261,6 +271,9 @@ Fin_Base1S:      dB $FF
 
         Movb #$F0,DDRA
         BSet PUCR,$01
+        
+        Movb #$25,IBFD
+        Movb #$80,IBCR
 
 ;===============================================================================
 ;                           PROGRAMA PRINCIPAL
@@ -272,12 +285,16 @@ Fin_Base1S:      dB $FF
         Movw #tTimer1S,Timer1S
 
         Movb #tTimerLDTst,TimerLDTst  ;inicia timer parpadeo led testigo
-        Movb #0,Timer_LP
+        Movb #0,Timer_LP1
+        Movb #0,Timer_LP2
+        ;Movb #tTimerRead_RTC,TimerRead_RTC
 
         ; Inicializacion de estados de maquinas de estado
+        Movw #RTC_Est1,EstPres_RTC
         Movw #TareaLDTst_Est1,EstPres_LDTst
         Movw #PantallaMUX_Est1,EstPres_PantallaMUX
-        Movw #LeerPB_Est1,EstPres_LeerPB1
+        Movw #LeerPB1_Est1,EstPres_LeerPB1
+        Movw #LeerPB2_Est1,EstPres_LeerPB2
         Movw #Teclado_Est1,EstPres_TCL
         Movw #TareaLCD_Est1,EstPres_TareaLCD
         Movw #TareaSendLCD_Est1,EstPres_SendLCD
@@ -348,10 +365,12 @@ Despachador_Tareas
                 BrSet Banderas_2,LCD_OK,NoNewMsg
                 Jsr Tarea_LCD
 NoNewMsg        Jsr Decre_TablaTimers
+                Jsr Tarea_RTC
                 Jsr Tarea_Led_Testigo
                 Jsr Tarea_Conversion
                 Jsr Tarea_PantallaMUX
-                Jsr Tarea_LeerPB
+                Jsr Tarea_LeerPB1
+                Jsr Tarea_LeerPB2
                 Jsr Tarea_Teclado
                 Bra Despachador_Tareas
 
@@ -360,12 +379,12 @@ NoNewMsg        Jsr Decre_TablaTimers
 ;******************************************************************************
 
 Tarea_Conversion:
-                Ldaa BIN1                         ; Cargar primer binario
-                Jsr BIN_BCD_MUXP                  ; Convertirlo a BCD
-                Movb BCD,BCD1                     ; Guardarlo en BCD
-                Ldaa BIN2                         ; Cargar segundo binario
-                Jsr BIN_BCD_MUXP                  ; Convertirlo a BCD
-                Movb BCD,BCD2                     ; Guardarlo en BCD
+                ;Ldaa BIN1                         ; Cargar primer binario
+                ;Jsr BIN_BCD_MUXP                  ; Convertirlo a BCD
+                ;Movb BCD,BCD1                     ; Guardarlo en BCD
+                ;Ldaa BIN2                         ; Cargar segundo binario
+                ;Jsr BIN_BCD_MUXP                  ; Convertirlo a BCD
+                ;Movb BCD,BCD2                     ; Guardarlo en BCD
                 Jsr BCD_7Seg                      ; Convertir a valor de lectura
 FIN_TareaConv:  Rts                               ; valido para la pantalla
 
@@ -486,14 +505,14 @@ FIN_LDTst_3     Rts
 ;                                 TAREA RTC
 ;******************************************************************************
 
-Tarea_RTC
+Tarea_RTC:
                 Ldx EstPres_RTC
                 Jsr 0,X
                 Rts
 
 ;============================= TAREA RTC ESTADO 1 ==============================
 
-RTC_Est1:
+RTC_Est1:       Ldaa Banderas_1
                 BrClr Banderas_1,LongP1,GoToRTC_Est3
                 Movb #$07,Index_RTC             ; Se carga el Index_RTC y se
                 BSet IBCR,MS_SL                 ; envia el start
@@ -502,7 +521,7 @@ RTC_Est1:
                 Movw #RTC_Est2,EstPres_RTC
                 Bra FIN_RTC_1
 GoToRTC_Est3    Movb #tTimerRead_RTC,TimerRead_RTC
-                Movw #RTC_Est1,EstPres_RTC
+                Movw #RTC_Est3,EstPres_RTC
 FIN_RTC_1  Rts
 
 ;============================= TAREA RTC ESTADO 2 ==============================
@@ -536,65 +555,122 @@ RTC_Est4:
                 Ldaa Index_RTC
                 Cmpa #$07
                 Bne FIN_RTC_4
-                Movb 1,T_Read_RTC,BCD1
-                Movb 2,T_Read_RTC,BCD2
+                Movb T_Read_RTC,BCD1
+                Movb T_Read_RTC+1,BCD2
                 Movw #RTC_Est1,EstPres_RTC
 FIN_RTC_4  Rts
 
 ;******************************************************************************
-;                               TAREA LEER PB
+;                               TAREA LEER PB1
 ;******************************************************************************
 
-Tarea_LeerPB
+Tarea_LeerPB1:
                 Ldx EstPres_LeerPB1
                 Jsr 0,X
-FinTareaPB      Rts
+FinTareaPB1     Rts
 
-;============================= LEER PB ESTADO 1 ================================
+;============================= LEER PB1 ESTADO 1 ===============================
 
-LeerPB_Est1
+LeerPB1_Est1
                 BrSet PortPB,MaskPB1,FIN_Est1      ; Si el boton es presionado
-No_FIN_Est1     Movb #tSupRebPB,Timer_RebPB       ; Cargar timers
-                Movb #tShortP,Timer_SHP
-                Movb #tLongP,Timer_LP
-                Movw #LeerPB_Est2,EstPres_LeerPB1 ; Continuar a estado 2
+No_FIN_Est1     Movb #tSupRebPB1,Timer_RebPB1       ; Cargar timers
+                Movb #tShortP1,Timer_SHP1
+                Movb #tLongP1,Timer_LP1
+                Movw #LeerPB1_Est2,EstPres_LeerPB1 ; Continuar a estado 2
 FIN_Est1        Rts
 
-;============================= LEER PB ESTADO 2 ================================
+;============================= LEER PB1 ESTADO 2 ===============================
 
-LeerPB_Est2
-                Tst Timer_RebPB                   ; Si se agota el timer
+LeerPB1_Est2
+                Tst Timer_RebPB1                   ; Si se agota el timer
                 Bne FIN_Est2                      ; verificar si aun sigue pre-
                 BrSet PortPB,MaskPB1,Ret_Est1_1    ; sionado el boton
-                Movw #LeerPB_Est3,EstPres_LeerPB1
+                Movw #LeerPB1_Est3,EstPres_LeerPB1
                 Bra FIN_Est2
-Ret_Est1_1      Movw #LeerPB_Est1,EstPres_LeerPB1 ; Sino regresar a estado 1
+Ret_Est1_1      Movw #LeerPB1_Est1,EstPres_LeerPB1 ; Sino regresar a estado 1
 FIN_Est2        Rts
 
-;============================= LEER PB ESTADO 3 ================================
+;============================= LEER PB1 ESTADO 3 ===============================
 
-LeerPB_Est3
-                Tst Timer_SHP                     ; Verificar si el timer short
+LeerPB1_Est3
+                Tst Timer_SHP1                     ; Verificar si el timer short
                 Bne FIN_Est3                      ; press se agoto
                 BrSet PortPB,MaskPB1,Ret_Est1_2    ; Si se presiona el boton
-                Movw #LeerPB_Est4,EstPres_LeerPB1 ; Sino, pasar a estado 4
+                Movw #LeerPB1_Est4,EstPres_LeerPB1 ; Sino, pasar a estado 4
                 Bra FIN_Est3
 Ret_Est1_2      BSet Banderas_1,ShortP1              ; Levantar bandera ShortP y
-                Movw #LeerPB_Est1,EstPres_LeerPB1 ; regresar a estado 1
+                Movw #LeerPB1_Est1,EstPres_LeerPB1 ; regresar a estado 1
 FIN_Est3        Rts
 
-;============================= LEER PB ESTADO 4 ================================
+;============================= LEER PB1 ESTADO 4 ===============================
 
-LeerPB_Est4     Tst Timer_LP                      ; Si no se agota el timer long
-                Bne TestPB                        ; press, y se presiona el boton
+LeerPB1_Est4
+                Tst Timer_LP1                      ; Si no se agota el timer long
+                Bne TestPB1                        ; press, y se presiona el boton
                 BrClr PortPB,MaskPB1,FIN_Est4      ; es un short press
                 BSet Banderas_1,LongP1
-Ret_Est1_3      Movw #LeerPB_Est1,EstPres_LeerPB1 ; sino es un long press
+Ret_Est1_3      Movw #LeerPB1_Est1,EstPres_LeerPB1 ; sino es un long press
                 Bra FIN_Est4
-TestPB          BrClr PortPB,MaskPB1,FIN_Est4
+TestPB1         BrClr PortPB,MaskPB1,FIN_Est4
                 BSet Banderas_1,ShortP1
                 Bra Ret_Est1_3
 FIN_Est4        Rts
+
+;******************************************************************************
+;                               TAREA LEER PB2
+;******************************************************************************
+
+Tarea_LeerPB2:
+                Ldx EstPres_LeerPB2
+                Jsr 0,X
+FinTareaPB2     Rts
+
+;============================= LEER PB2 ESTADO 1 ===============================
+
+LeerPB2_Est1
+                BrSet PortPB,MaskPB2,FIN_Est1_2    ; Si el boton es presionado
+No_FIN_Est1_2   Movb #tSupRebPB2,Timer_RebPB2      ; Cargar timers
+                Movb #tShortP2,Timer_SHP2
+                Movb #tLongP2,Timer_LP2
+                Movw #LeerPB2_Est2,EstPres_LeerPB2 ; Continuar a estado 2
+FIN_Est1_2      Rts
+
+;============================= LEER PB2 ESTADO 2 ===============================
+
+LeerPB2_Est2
+                Tst Timer_RebPB2                   ; Si se agota el timer
+                Bne FIN_Est2_2                     ; verificar si aun sigue pre-
+                BrSet PortPB,MaskPB2,Ret_Est1_1_2  ; sionado el boton
+                Movw #LeerPB2_Est3,EstPres_LeerPB2
+                Bra FIN_Est2_2
+Ret_Est1_1_2    Movw #LeerPB2_Est1,EstPres_LeerPB2 ; Sino regresar a estado 1
+FIN_Est2_2      Rts
+
+;============================= LEER PB2 ESTADO 3 ===============================
+
+LeerPB2_Est3
+                Tst Timer_SHP2                     ; Verificar si el timer short
+                Bne FIN_Est3_2                     ; press se agoto
+                BrSet PortPB,MaskPB2,Ret_Est1_2_2  ; Si se presiona el boton
+                Movw #LeerPB2_Est4,EstPres_LeerPB2 ; Sino, pasar a estado 4
+                Bra FIN_Est3_2
+Ret_Est1_2_2    BSet Banderas_1,ShortP2            ; Levantar bandera ShortP y
+                Movw #LeerPB2_Est1,EstPres_LeerPB2 ; regresar a estado 1
+FIN_Est3_2      Rts
+
+;============================= LEER PB2 ESTADO 4 ===============================
+
+LeerPB2_Est4
+                Tst Timer_LP2                      ; Si no se agota el timer long
+                Bne TestPB2                        ; press, y se presiona el boton
+                BrClr PortPB,MaskPB2,FIN_Est4_2    ; es un short press
+                BSet Banderas_1,LongP2
+Ret_Est1_3_2    Movw #LeerPB2_Est1,EstPres_LeerPB2 ; sino es un long press
+                Bra FIN_Est4
+TestPB2         BrClr PortPB,MaskPB2,FIN_Est4_2
+                BSet Banderas_1,ShortP2
+                Bra Ret_Est1_3_2
+FIN_Est4_2      Rts
 
 ;******************************************************************************
 ;                             TAREA PANTALLA MUX
@@ -887,8 +963,36 @@ FIN_Leer_Tecl   Rts
 Read_RTC:
                 Ldaa Index_RTC
                 Cmpa #$07
-                
-FIN_Read_RTC
+                Bne Cmp_Idx_08
+                Movb #Dir_Seg,IBDR
+                Bra Inc_Idx_Rtc
+Cmp_Idx_08      Cmpa #$08
+                Bne Cmp_Idx_09
+                BSet IBCR,RSTA
+                Movb #Dir_RD,IBDR
+                Bra Inc_Idx_Rtc
+Cmp_Idx_09      Cmpa #$09
+                Beq Tx_On
+                Ldx #T_Read_RTC
+                Ldaa Index_RTC
+                Cmpa #5
+                Blo Read_IBDR
+                Cmpa #6
+                Bne Tx_Off
+                BClr IBCR,MS_SL
+                Movb #$07,Index_RTC
+                Movb IBDR,A,X
+                Bra FIN_Read_RTC
+Tx_On           BClr IBCR,RSTA
+                BClr IBCR,TX_RX
+                BClr IBCR,TXAK
+                Clr Index_RTC
+                Ldaa IBDR
+                Bra FIN_Read_RTC
+Tx_Off          BSet IBCR,TXAK
+Read_IBDR       Movb IBDR,A,X
+Inc_Idx_Rtc     Inc Index_RTC
+FIN_Read_RTC    Rts
 
 ;******************************************************************************
 ;                            SUBRUTINA WRITE RTC
@@ -898,7 +1002,7 @@ Write_RTC:
                 Ldaa Index_RTC
                 Cmpa #$07
                 Beq Reset_Index
-                Ldx T_Write_RTC
+                Ldx #T_Write_RTC
                 Ldaa Index_RTC
                 Movb A,X,IBDR
                 Cmpa #$06
@@ -910,7 +1014,7 @@ Inc_IndexRTC    Inc Index_RTC
                 Bra FIN_Write_RTC
 Reset_Index     Movb #Dir_Seg,IBDR
                 Clr Index_RTC
-FIN_Write_RTC
+FIN_Write_RTC   Rts
 
 ;******************************************************************************
 ;                        SUBRUTINA BORRAR NUM ARRAY
