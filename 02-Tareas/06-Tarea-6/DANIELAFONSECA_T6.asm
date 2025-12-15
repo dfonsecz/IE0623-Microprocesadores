@@ -74,6 +74,10 @@ Volumen:          ds 1
 Puntero_Msg:      ds 2
 Cont_Seg:         ds 1
 
+BCD_H:            ds 1
+BCD_L:            ds 1
+ASCIIChars:       ds 3
+
 ;=================================== BANDERAS ==================================
 
                   ORG $1070
@@ -117,15 +121,35 @@ Segment:          db $3F                ; "0"
 
 ;================================== MENSAJES ===================================
 
-Msg_Operacion:    fcc "   UNIVERSIDAD DE COSTA RICA   "
+CR:               EQU $0D
+LF:               EQU $0A
+
+Msg_Operacion:    db CR,CR,LF
+                  fcc "                           "
+                  fcc "UNIVERSIDAD DE COSTA RICA"
+                  db CR,CR,LF
+                  fcc "                        "
                   fcc "ESCUELA DE INGENIERIA ELECTRICA"
-                  fcc "       MICROPROCESADORES       "
-                  fcc "             IE0623            "
+                  db CR,CR,LF
+                  fcc "                               "
+                  fcc "MICROPROCESADORES"
+                  db CR,CR,LF
+                  fcc "                                    "
+                  fcc "IE0623"
+                  db CR,CR,LF
+                  db CR,CR,LF
+                  fcc "              "
                   fcc "VOLUMEN CALCULADO: "
                   db $FF
-Msg_Alarma:       fcc "Alarma: El Nivel esta Bajo"
+Msg_Alarma:       db CR,CR,LF
+                  db CR,CR,LF
+                  fcc "              "
+                  fcc "Alarma: El Nivel esta Bajo"
                   db $FF
-Msg_Vaciado:      fcc "Vaciando Tanque, Bomba Apagada"
+Msg_Vaciado:      db CR,CR,LF
+                  db CR,CR,LF
+                  fcc "              "
+                  fcc "Vaciando Tanque, Bomba Apagada"
                   db $FF
 Msg_En_Blanco:    fcc " "
                   db $FF
@@ -199,8 +223,8 @@ Fin_Base1S:     dB $FF
         Movw #tTimer10mS,Timer10mS         ;Inicia los timers de bases de tiempo
         Movw #tTimer100mS,Timer100mS
         Movw #tTimer1S,Timer1S
-
         Movb #tTimerLDTst,TimerLDTst  ;inicia timer parpadeo led testigo
+        Movb #tTimerTerminal,TimerTerminal
 
         ; Inicializacion de estados de maquinas de estado
         Movw #TareaLDTst_Est1,EstPres_LDTst
@@ -420,20 +444,24 @@ FIN_ATD_1       Rts
 ;============================= TAREA ATD ESTADO 2 ==============================
 
 TareaATD_Est2:
-               BrClr ATD0STAT0,$80,FIN_ATD_2
-               Jsr Calcula
-               Ldaa Volumen
-               Cmpa #14
-               Bhi PrevState_ATD
-               BSet Banderas_1,MostrarAlarma
-               Cmpa #30
-               Bhs PrevState_ATD
-               BClr Banderas_1,MostrarAlarma
-               Cmpa #82
-               Bls PrevState_ATD
-               BSet Banderas_1,Vaciar
-PrevState_ATD  Movw #TareaATD_Est1,EstPres_ATD
-FIN_ATD_2      Rts
+                BrClr ATD0STAT0,$80,FIN_ATD_2
+                Jsr Calcula
+                Ldaa Volumen
+                Cmpa #14
+                Bls AlarmaAct
+                Cmpa #30
+                Bhi AlarmaDes
+                Bra CheckVaciar_1
+AlarmaAct       BSet Banderas_1,MostrarAlarma
+                Bra CheckVaciar_1
+AlarmaDes       BClr Banderas_1,MostrarAlarma
+CheckVaciar_1   Cmpa #82
+                Bls VaciarOFF
+                BSet Banderas_1,Vaciar
+                Bra PrevState_ATD
+VaciarOFF       BClr Banderas_1,Vaciar
+PrevState_ATD   Movw #TareaATD_Est1,EstPres_ATD
+FIN_ATD_2       Rts
 
 ;******************************************************************************
 ;                                TAREA TERMINAL
@@ -449,40 +477,54 @@ Tarea_Terminal:
 Terminal_Est1:
                 Tst TimerTerminal
                 Bne FIN_Terminal_1
-                Ldaa SC1SR1
+                BrClr SC1SR1,$80,FIN_Terminal_1
+                BSet SC1CR2,$08
                 Ldx Puntero_Msg
                 Ldaa 1,X+
                 Cmpa #$FF
                 Beq NextState_Term
                 Staa SC1DRL
                 Stx Puntero_Msg
-NextState_Term  BClr SC1CR2,$08
+                Bra FIN_Terminal_1
+NextState_Term  Ldaa Volumen
+		Jsr BIN_ASCII
+                Ldx #ASCIIChars
+                Ldy  #3              ; 3 caracteres a imprimir
+PrintChar	BrClr SC1SR1,$80,PrintChar   ; esperar TDRE = 1
+                Ldaa 0,X                      ; cargar carácter actual
+                Staa SC1DRL
+                Inx
+                Dey
+                Bne PrintChard
+                Movb #tTimerTerminal,TimerTerminal
                 Movw #Terminal_Est2,EstPres_Terminal
+                Rts
 FIN_Terminal_1  Rts
 
 ;=========================== TAREA TERMINAL ESTADO 2 ===========================
 
 Terminal_Est2:
-                BrClr Banderas_1,MostrarAlarma,CheckVaciar
+                BrClr Banderas_1,MostrarAlarma,CheckVaciar_2
                 Movw #Msg_Alarma,Puntero_Msg
                 BSet SC1CR2,$08
                 Movw #Terminal_Est3,EstPres_Terminal
-CheckVaciar     BrSet Banderas_1,Vaciar,Reset_Msg_Op
+                Bra FIN_Terminal_2
+CheckVaciar_2   BrClr Banderas_1,Vaciar,Cargar_Msg_Op
                 Tst Cont_Seg
+                Bne FIN_Terminal_2
                 Movw #Msg_Vaciado,Puntero_Msg
                 BSet SC1CR2,$08
                 Movw #Terminal_Est3,EstPres_Terminal
                 Bra FIN_Terminal_2
-Dec_ContSeg     Dec Cont_Seg
-                Bra FIN_Terminal_2
-Reset_Msg_Op    Movw #Msg_Operacion,Puntero_Msg
+Cargar_Msg_Op   ;BSet SC1CR2,$08
+                ;Movw #Msg_Operacion,Puntero_Msg
                 Movw #Terminal_Est1,EstPres_Terminal
 FIN_Terminal_2  Rts
 
 ;=========================== TAREA TERMINAL ESTADO 3 ===========================
 
 Terminal_Est3:
-                Ldaa SC1SR1
+                BrClr SC1SR1,$80,FIN_Terminal_3
                 Ldx Puntero_Msg
                 Ldaa 1,X+
                 Cmpa #$FF
@@ -491,7 +533,8 @@ Terminal_Est3:
                 Stx Puntero_Msg
                 Bra FIN_Terminal_3
 PrevState_Term3 BClr SC1CR2,$08
-                Movb #tTimerTerminal,TimerTerminal
+		Movb #tTimerTerminal,TimerTerminal
+                Movw #Msg_Operacion,Puntero_Msg
                 Movw #Terminal_Est1,EstPres_Terminal
 FIN_Terminal_3  Rts
 
@@ -563,6 +606,56 @@ Calcula:
                 Mul                     ; Volumen = Pi*(Radio**2)*(Nivel)
                 Stab Volumen
 FIN_Calcula     Rts
+
+;******************************************************************************
+;                                BIN_ASCII
+;******************************************************************************
+
+BIN_ASCII:
+                Ldy #7
+                Movb #0,BCD_H
+                Movb #0,BCD_L
+LoopBINASCII    Lsla
+                Rol BCD_L
+                Rol BCD_H
+                Psha
+                Ldaa BCD_L
+                Anda #$0F
+                Cmpa #$05
+                Bcs Store_Low
+                Adda #$03
+Store_Low       Psha
+                Ldaa BCD_L
+                Anda #$F0
+                Cmpa #$50
+                Bcs Store_High
+                Adda #$30
+Store_High      Pulb
+                Aba
+                Staa BCD_L
+                Pula
+                Dbne Y,LoopBINASCII
+                Lsla
+                Rol BCD_L
+                Rol BCD_H
+                Ldx #ASCIIChars
+                Ldaa BCD_H
+                Anda #$0F
+                Adda #$30
+                Staa 0,X
+                Ldaa BCD_L
+                Anda #$F0
+                Lsra
+                Lsra
+                Lsra
+		Lsra
+		Adda #$30
+                Staa 1,X
+                Ldaa BCD_L
+                Anda #$0F
+                Adda #$30
+                Staa 2,X
+                Rts
 
 ;******************************************************************************
 ;                       SUBRUTINA DECRE_TABLATIMERS
